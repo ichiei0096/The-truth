@@ -69,7 +69,25 @@
                 font-size: 0.7rem;
             }
             .cybozu-employee-cell {
-                min-width: 120px !important;
+                min-width: 80px !important;
+                max-width: 80px !important;
+            }
+            .cybozu-day-cell {
+                min-width: 60px !important;
+                padding: 0.25rem !important;
+            }
+            .cybozu-day-header {
+                padding: 0.5rem 0.25rem !important;
+                font-size: 0.65rem !important;
+            }
+            .cybozu-schedule-item {
+                font-size: 0.6rem !important;
+                padding: 0.25rem !important;
+                margin-bottom: 0.125rem !important;
+            }
+            .cybozu-add-button {
+                font-size: 0.6rem !important;
+                padding: 0.25rem !important;
             }
         }
     </style>
@@ -1081,7 +1099,12 @@
             // ヘッダー行
             const headerRow = document.createElement('div');
             headerRow.className = 'grid border-b border-purple-200 bg-gradient-to-r from-purple-100 to-pink-100';
-            headerRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
+            // モバイルとデスクトップで異なるグリッド設定
+            if (window.innerWidth <= 768) {
+                headerRow.style.gridTemplateColumns = '80px repeat(7, 1fr)';
+            } else {
+                headerRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
+            }
             
             const employeeHeader = document.createElement('div');
             employeeHeader.className = 'cybozu-employee-cell p-2 md:p-3 font-bold text-purple-700 border-r border-purple-200 flex items-center justify-center text-xs md:text-sm';
@@ -1096,7 +1119,7 @@
                 const isToday = day.toISOString().split('T')[0] === today;
                 
                 const dayHeader = document.createElement('div');
-                dayHeader.className = `p-2 md:p-3 text-center font-bold border-r border-purple-200 text-xs md:text-sm ${
+                dayHeader.className = `cybozu-day-header p-2 md:p-3 text-center font-bold border-r border-purple-200 text-xs md:text-sm ${
                     isToday ? 'bg-gradient-to-br from-yellow-200 to-orange-200 text-orange-700' :
                     day.getDay() === 0 ? 'text-red-500' : 
                     day.getDay() === 6 ? 'text-blue-500' : 
@@ -1104,12 +1127,14 @@
                 }`;
                 
                 dayHeader.innerHTML = `
-                    <div class="flex items-center justify-center space-x-1">
-                        <span class="text-xs md:text-sm">${dayEmoji}</span>
-                        <span class="text-xs md:text-sm">${day.getMonth() + 1}/${day.getDate()}</span>
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="flex items-center justify-center space-x-1">
+                            <span class="text-xs">${dayEmoji}</span>
+                            <span class="text-xs">${day.getMonth() + 1}/${day.getDate()}</span>
+                        </div>
+                        <div class="text-xs">(<span class="md:hidden">${dayOfWeek.charAt(0)}</span><span class="hidden md:inline">${dayOfWeek}</span>)</div>
+                        ${isToday ? '<div class="text-xs">✨</div>' : ''}
                     </div>
-                    <div class="text-xs">(<span class="md:hidden">${dayOfWeek.charAt(0)}</span><span class="hidden md:inline">${dayOfWeek}</span>)</div>
-                    ${isToday ? '<div class="text-xs">✨<span class="hidden md:inline">今日</span>✨</div>' : ''}
                 `;
                 headerRow.appendChild(dayHeader);
             });
@@ -1121,7 +1146,12 @@
                 // 部署ヘッダー
                 const deptHeaderRow = document.createElement('div');
                 deptHeaderRow.className = 'grid bg-gradient-to-r from-purple-100 to-pink-100 border-b border-purple-200';
-                deptHeaderRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
+                // モバイルとデスクトップで異なるグリッド設定
+                if (window.innerWidth <= 768) {
+                    deptHeaderRow.style.gridTemplateColumns = '80px repeat(7, 1fr)';
+                } else {
+                    deptHeaderRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
+                }
                 
                 const deptHeader = document.createElement('div');
                 deptHeader.className = 'p-1 md:p-2 font-bold text-purple-700 border-r border-purple-200 flex items-center space-x-2 text-xs md:text-sm';
@@ -1139,16 +1169,21 @@
                     const empData = allEmployees.find(e => e.id === emp.id);
                     const empRow = document.createElement('div');
                     empRow.className = 'grid border-b border-purple-100 hover:bg-purple-50/50 transition-all duration-300';
-                    empRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
+                    // モバイルとデスクトップで異なるグリッド設定
+                    if (window.innerWidth <= 768) {
+                        empRow.style.gridTemplateColumns = '80px repeat(7, 1fr)';
+                    } else {
+                        empRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
+                    }
                     
                     // 社員名
                     const empNameCell = document.createElement('div');
                     empNameCell.className = 'cybozu-employee-cell p-2 md:p-3 border-r border-purple-200 bg-white/60';
                     empNameCell.innerHTML = `
-                        <div class="flex items-center space-x-1 md:space-x-2">
+                        <div class="flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-2">
                             <div class="w-2 h-2 md:w-3 md:h-3 rounded-full shadow-sm" style="background-color: ${empData.color}"></div>
                             <span class="text-sm md:text-lg">${emp.emoji}</span>
-                            <span class="text-xs md:text-sm font-bold text-purple-700 truncate">${emp.name}</span>
+                            <span class="text-xs md:text-sm font-bold text-purple-700 truncate text-center md:text-left">${emp.name}</span>
                         </div>
                     `;
                     empRow.appendChild(empNameCell);
@@ -1159,7 +1194,7 @@
                         const isToday = day.toISOString().split('T')[0] === today;
                         
                         const dayCell = document.createElement('div');
-                        dayCell.className = `p-1 md:p-2 border-r border-purple-200 min-h-12 md:min-h-16 ${
+                        dayCell.className = `cybozu-day-cell p-1 md:p-2 border-r border-purple-200 min-h-12 md:min-h-16 ${
                             isToday ? 'bg-gradient-to-br from-yellow-50 to-orange-50' : ''
                         }`;
                         
@@ -1168,7 +1203,7 @@
                         
                         daySchedules.forEach(schedule => {
                             const scheduleDiv = document.createElement('div');
-                            scheduleDiv.className = 'text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-all duration-300 transform hover:scale-105 shadow-sm';
+                            scheduleDiv.className = 'cybozu-schedule-item text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-all duration-300 transform hover:scale-105 shadow-sm';
                             scheduleDiv.style.backgroundColor = `${getEmployeeColor(schedule.employeeIds[0])}30`;
                             scheduleDiv.style.borderLeft = `1px md:2px solid ${getEmployeeColor(schedule.employeeIds[0])}`;
                             scheduleDiv.onclick = (e) => {
@@ -1193,7 +1228,7 @@
                         
                         // 予定追加ボタンを常に表示（予定がある日でも追加可能）
                         const addDiv = document.createElement('div');
-                        addDiv.className = 'text-gray-400 text-xs p-1 cursor-pointer hover:bg-purple-100 rounded border border-dashed border-purple-200 transition-all duration-300 transform hover:scale-105 text-center mt-1';
+                        addDiv.className = 'cybozu-add-button text-gray-400 text-xs p-1 cursor-pointer hover:bg-purple-100 rounded border border-dashed border-purple-200 transition-all duration-300 transform hover:scale-105 text-center mt-1';
                         addDiv.onclick = (e) => {
                             e.stopPropagation();
                             addScheduleForEmployeeAndDate(emp.id, day);
@@ -1533,6 +1568,13 @@
             setViewMode('calendar');
             cleanupExpiredProjects();
             setupFileUploadHandlers();
+        });
+
+        // 画面リサイズ時の処理
+        window.addEventListener('resize', function() {
+            if (viewMode === 'cybozu') {
+                updateCybozuView();
+            }
         });
 
         // ファイル共有機能
