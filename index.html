@@ -36,6 +36,42 @@
         .bg-white\/60 { background-color: rgba(255, 255, 255, 0.6); }
         .bg-white\/50 { background-color: rgba(255, 255, 255, 0.5); }
         .bg-black\/50 { background-color: rgba(0, 0, 0, 0.5); }
+        
+        /* モバイル対応 */
+        @media (max-width: 768px) {
+            .calendar-grid {
+                font-size: 0.75rem;
+            }
+            .calendar-cell {
+                min-height: 4rem !important;
+                padding: 0.25rem !important;
+            }
+            .schedule-item {
+                font-size: 0.6rem !important;
+                padding: 0.125rem 0.25rem !important;
+                margin-bottom: 0.125rem !important;
+            }
+            .mobile-header {
+                padding: 0.75rem !important;
+            }
+            .mobile-controls {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            .mobile-button {
+                font-size: 0.75rem !important;
+                padding: 0.5rem 0.75rem !important;
+            }
+            .mobile-modal {
+                margin: 0.5rem !important;
+            }
+            .cybozu-grid {
+                font-size: 0.7rem;
+            }
+            .cybozu-employee-cell {
+                min-width: 120px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -118,9 +154,6 @@
                                onkeypress="if(event.key==='Enter') handleLogin()">
                         <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-xl">🔐</div>
                     </div>
-                    <p class="text-xs text-gray-500 text-center mt-2 bg-yellow-50 p-2 rounded-lg">
-                        💡 デモ用パスワード: password123
-                    </p>
                 </div>
             </div>
 
@@ -146,26 +179,26 @@
     <!-- ファイル共有画面 -->
     <div id="fileSharingScreen" class="hidden min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
         <!-- ヘッダー -->
-        <header class="bg-gradient-to-r from-green-600 via-teal-500 to-blue-600 text-white p-4 shadow-xl">
+        <header class="bg-gradient-to-r from-green-600 via-teal-500 to-blue-600 text-white mobile-header shadow-xl">
             <div class="max-w-6xl mx-auto flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="text-2xl animate-pulse">📁</div>
+                <div class="flex items-center space-x-2 md:space-x-3">
+                    <div class="text-xl md:text-2xl animate-pulse">📁</div>
                     <div>
-                        <h1 class="text-xl font-bold flex items-center space-x-2">
+                        <h1 class="text-sm md:text-xl font-bold flex items-center space-x-1 md:space-x-2">
                             <span>物件ファイル共有</span>
-                            <span class="animate-spin text-sm">📋</span>
+                            <span class="animate-spin text-xs md:text-sm">📋</span>
                         </h1>
-                        <p class="text-green-100 text-sm">株式会社大真工業 ✨ ファイル管理システム</p>
+                        <p class="text-green-100 text-xs md:text-sm hidden md:block">株式会社大真工業 ✨ ファイル管理システム</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2 md:space-x-3">
                     <button onclick="showCreateProjectModal()"
-                            class="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 px-4 py-2 rounded-xl flex items-center space-x-2 transition-all duration-300 transform hover:scale-105 shadow-lg font-bold text-sm">
+                            class="mobile-button bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 px-2 md:px-4 py-1 md:py-2 rounded-xl flex items-center space-x-1 md:space-x-2 transition-all duration-300 transform hover:scale-105 shadow-lg font-bold">
                         <span>➕</span>
-                        <span>新規物件</span>
+                        <span class="hidden md:inline">新規物件</span>
                     </button>
                     <button onclick="backToLogin()"
-                            class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-sm"
+                            class="mobile-button bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 p-1 md:p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
                             title="戻る">
                         <span>🏠</span>
                     </button>
@@ -195,17 +228,17 @@
     <!-- 物件詳細画面 -->
     <div id="projectDetailScreen" class="hidden min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
         <!-- ヘッダー -->
-        <header class="bg-gradient-to-r from-green-600 via-teal-500 to-blue-600 text-white p-4 shadow-xl">
+        <header class="bg-gradient-to-r from-green-600 via-teal-500 to-blue-600 text-white mobile-header shadow-xl">
             <div class="max-w-6xl mx-auto flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="text-2xl animate-pulse">📋</div>
+                <div class="flex items-center space-x-2 md:space-x-3">
+                    <div class="text-xl md:text-2xl animate-pulse">📋</div>
                     <div>
-                        <h1 id="projectDetailTitle" class="text-xl font-bold"></h1>
-                        <p class="text-green-100 text-sm">物件ファイル管理</p>
+                        <h1 id="projectDetailTitle" class="text-sm md:text-xl font-bold"></h1>
+                        <p class="text-green-100 text-xs md:text-sm hidden md:block">物件ファイル管理</p>
                     </div>
                 </div>
                 <button onclick="backToFileSharing()"
-                        class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-sm"
+                        class="mobile-button bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 p-1 md:p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
                         title="戻る">
                     <span>←</span>
                 </button>
@@ -348,30 +381,30 @@
     <!-- メイン画面 -->
     <div id="mainScreen" class="hidden min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
         <!-- ヘッダー -->
-        <header class="bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 text-white p-4 shadow-xl">
+        <header class="bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 text-white mobile-header shadow-xl">
             <div class="max-w-6xl mx-auto flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="text-2xl animate-pulse">🎯</div>
+                <div class="flex items-center space-x-2 md:space-x-3">
+                    <div class="text-xl md:text-2xl animate-pulse">🎯</div>
                     <div>
-                        <h1 class="text-xl font-bold flex items-center space-x-2">
+                        <h1 class="text-sm md:text-xl font-bold flex items-center space-x-1 md:space-x-2">
                             <span>The truth</span>
-                            <span class="animate-spin text-sm">✨</span>
+                            <span class="animate-spin text-xs md:text-sm">✨</span>
                         </h1>
-                        <p class="text-purple-100 text-sm">株式会社大真工業 ✨ スケジュール管理システム</p>
+                        <p class="text-purple-100 text-xs md:text-sm hidden md:block">株式会社大真工業 ✨ スケジュール管理システム</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <div class="text-right bg-white/20 rounded-xl p-2 backdrop-blur-sm">
-                        <p id="currentUserName" class="font-bold text-sm flex items-center space-x-1"></p>
-                        <p id="currentUserDept" class="text-xs text-purple-100"></p>
+                <div class="flex items-center space-x-2 md:space-x-3">
+                    <div class="text-right bg-white/20 rounded-xl p-1 md:p-2 backdrop-blur-sm">
+                        <p id="currentUserName" class="font-bold text-xs md:text-sm flex items-center space-x-1"></p>
+                        <p id="currentUserDept" class="text-xs text-purple-100 hidden md:block"></p>
                     </div>
                     <button onclick="showAddModal()"
-                            class="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 px-4 py-2 rounded-xl flex items-center space-x-2 transition-all duration-300 transform hover:scale-105 shadow-lg font-bold text-sm">
+                            class="mobile-button bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 px-2 md:px-4 py-1 md:py-2 rounded-xl flex items-center space-x-1 md:space-x-2 transition-all duration-300 transform hover:scale-105 shadow-lg font-bold">
                         <span>➕</span>
-                        <span>予定追加</span>
+                        <span class="hidden md:inline">予定追加</span>
                     </button>
                     <button onclick="handleLogout()"
-                            class="bg-gradient-to-r from-red-400 to-pink-400 hover:from-red-500 hover:to-pink-500 p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-sm"
+                            class="mobile-button bg-gradient-to-r from-red-400 to-pink-400 hover:from-red-500 hover:to-pink-500 p-1 md:p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
                             title="ログアウト">
                         <span>🚪</span>
                     </button>
@@ -381,52 +414,54 @@
 
         <div class="max-w-6xl mx-auto p-4">
             <!-- 表示モード切替・コントロール -->
-            <div class="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg p-4 mb-4 border border-purple-100">
-                <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg p-3 md:p-4 mb-4 border border-purple-100">
+                <div class="mobile-controls flex flex-wrap items-center justify-between gap-3">
                     <!-- 表示モード切替 -->
-                    <div class="flex rounded-xl overflow-hidden shadow-sm">
+                    <div class="flex rounded-xl overflow-hidden shadow-sm w-full md:w-auto">
                         <button onclick="setViewMode('calendar')" id="calendarModeBtn"
-                                class="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold text-sm transition-all duration-300 transform hover:scale-105">
-                            📅 カレンダー表示
+                                class="mobile-button flex-1 md:flex-none px-3 md:px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold transition-all duration-300 transform hover:scale-105">
+                            <span class="md:hidden">📅</span>
+                            <span class="hidden md:inline">📅 カレンダー表示</span>
                         </button>
                         <button onclick="setViewMode('cybozu')" id="cybozuModeBtn"
-                                class="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-pink-100 font-bold text-sm transition-all duration-300 transform hover:scale-105">
-                            👥 社員別表示
+                                class="mobile-button flex-1 md:flex-none px-3 md:px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-pink-100 font-bold transition-all duration-300 transform hover:scale-105">
+                            <span class="md:hidden">👥</span>
+                            <span class="hidden md:inline">👥 社員別表示</span>
                         </button>
                     </div>
                     
                     <!-- カレンダーコントロール -->
-                    <div id="calendarControls" class="flex items-center space-x-3">
+                    <div id="calendarControls" class="flex flex-col md:flex-row items-stretch md:items-center space-y-2 md:space-y-0 md:space-x-3 w-full md:w-auto">
                         <div class="flex items-center space-x-2 bg-white/50 rounded-xl p-2">
-                            <span class="text-sm">👤</span>
+                            <span class="text-xs md:text-sm">👤</span>
                             <select id="userFilter" onchange="filterByUser()" 
-                                    class="border border-purple-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white/80 text-sm">
+                                    class="border border-purple-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white/80 text-xs md:text-sm min-w-0 flex-1">
                                 <option value="all">🌟 全員</option>
                             </select>
                         </div>
                         
-                        <div class="flex items-center space-x-2 bg-white/50 rounded-xl p-2">
+                        <div class="flex items-center justify-center space-x-2 bg-white/50 rounded-xl p-2">
                             <button onclick="previousMonth()"
-                                    class="px-3 py-1 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all duration-300 transform hover:scale-105 font-bold text-sm">
+                                    class="mobile-button px-2 md:px-3 py-1 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all duration-300 transform hover:scale-105 font-bold">
                                 ◀
                             </button>
-                            <span id="currentMonth" class="text-sm font-bold text-purple-700 min-w-24 text-center"></span>
+                            <span id="currentMonth" class="text-xs md:text-sm font-bold text-purple-700 min-w-20 md:min-w-24 text-center"></span>
                             <button onclick="nextMonth()"
-                                    class="px-3 py-1 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all duration-300 transform hover:scale-105 font-bold text-sm">
+                                    class="mobile-button px-2 md:px-3 py-1 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all duration-300 transform hover:scale-105 font-bold">
                                 ▶
                             </button>
                         </div>
                     </div>
 
                     <!-- サイボウズコントロール -->
-                    <div id="cybozuControls" class="hidden flex items-center space-x-2 bg-white/50 rounded-xl p-2">
+                    <div id="cybozuControls" class="hidden flex items-center justify-center space-x-2 bg-white/50 rounded-xl p-2 w-full md:w-auto">
                         <button onclick="previousWeek()"
-                                class="px-3 py-1 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-lg hover:from-pink-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 font-bold text-sm">
+                                class="mobile-button px-2 md:px-3 py-1 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-lg hover:from-pink-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 font-bold">
                             ◀
                         </button>
-                        <span id="currentWeek" class="text-sm font-bold text-purple-700"></span>
+                        <span id="currentWeek" class="text-xs md:text-sm font-bold text-purple-700 text-center flex-1"></span>
                         <button onclick="nextWeek()"
-                                class="px-3 py-1 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-lg hover:from-pink-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 font-bold text-sm">
+                                class="mobile-button px-2 md:px-3 py-1 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-lg hover:from-pink-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 font-bold">
                             ▶
                         </button>
                     </div>
@@ -436,32 +471,32 @@
             <!-- カレンダー表示 -->
             <div id="calendarView" class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-purple-100">
                 <div class="grid grid-cols-7 bg-gradient-to-r from-purple-100 to-pink-100 border-b border-purple-200">
-                    <div class="p-3 text-center font-bold text-red-500">🌅 日</div>
-                    <div class="p-3 text-center font-bold text-purple-700">🌙 月</div>
-                    <div class="p-3 text-center font-bold text-purple-700">🔥 火</div>
-                    <div class="p-3 text-center font-bold text-purple-700">💧 水</div>
-                    <div class="p-3 text-center font-bold text-purple-700">🌳 木</div>
-                    <div class="p-3 text-center font-bold text-purple-700">⭐ 金</div>
-                    <div class="p-3 text-center font-bold text-blue-500">🌈 土</div>
+                    <div class="p-2 md:p-3 text-center font-bold text-xs md:text-sm text-red-500">🌅<span class="hidden md:inline"> 日</span></div>
+                    <div class="p-2 md:p-3 text-center font-bold text-xs md:text-sm text-purple-700">🌙<span class="hidden md:inline"> 月</span></div>
+                    <div class="p-2 md:p-3 text-center font-bold text-xs md:text-sm text-purple-700">🔥<span class="hidden md:inline"> 火</span></div>
+                    <div class="p-2 md:p-3 text-center font-bold text-xs md:text-sm text-purple-700">💧<span class="hidden md:inline"> 水</span></div>
+                    <div class="p-2 md:p-3 text-center font-bold text-xs md:text-sm text-purple-700">🌳<span class="hidden md:inline"> 木</span></div>
+                    <div class="p-2 md:p-3 text-center font-bold text-xs md:text-sm text-purple-700">⭐<span class="hidden md:inline"> 金</span></div>
+                    <div class="p-2 md:p-3 text-center font-bold text-xs md:text-sm text-blue-500">🌈<span class="hidden md:inline"> 土</span></div>
                 </div>
-                <div id="calendarGrid" class="grid grid-cols-7">
+                <div id="calendarGrid" class="calendar-grid grid grid-cols-7">
                 </div>
             </div>
 
             <!-- サイボウズ風表示 -->
             <div id="cybozuView" class="hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-x-auto border border-purple-100">
-                <div id="cybozuGrid" class="min-w-full">
+                <div id="cybozuGrid" class="cybozu-grid min-w-full">
                 </div>
             </div>
         </div>
     </div>
 
     <!-- スケジュール追加モーダル -->
-    <div id="addModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white/95 backdrop-blur-sm rounded-2xl w-full max-w-lg max-h-screen overflow-y-auto shadow-2xl border border-purple-200">
-            <div class="p-6">
+    <div id="addModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
+        <div class="mobile-modal bg-white/95 backdrop-blur-sm rounded-2xl w-full max-w-lg max-h-screen overflow-y-auto shadow-2xl border border-purple-200">
+            <div class="p-4 md:p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-purple-700 flex items-center space-x-2">
+                    <h2 class="text-lg md:text-xl font-bold text-purple-700 flex items-center space-x-2">
                         <span>🎉</span>
                         <span>新しい予定</span>
                         <span>✨</span>
@@ -558,11 +593,11 @@
     </div>
 
     <!-- スケジュール編集モーダル -->
-    <div id="editModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white/95 backdrop-blur-sm rounded-2xl w-full max-w-lg max-h-screen overflow-y-auto shadow-2xl border border-purple-200">
-            <div class="p-6">
+    <div id="editModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
+        <div class="mobile-modal bg-white/95 backdrop-blur-sm rounded-2xl w-full max-w-lg max-h-screen overflow-y-auto shadow-2xl border border-purple-200">
+            <div class="p-4 md:p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-purple-700 flex items-center space-x-2">
+                    <h2 class="text-lg md:text-xl font-bold text-purple-700 flex items-center space-x-2">
                         <span>✏️</span>
                         <span>予定の編集</span>
                         <span>✨</span>
@@ -672,21 +707,21 @@
         // データ定義
         const departments = {
             '管理部': [
-                { id: 1, name: '大仁田　真', password: 'password123', emoji: '👨‍💼', color: '#ff6b6b' },
-                { id: 2, name: '高橋　伸輔', password: 'password123', emoji: '🧑‍💻', color: '#4ecdc4' },
-                { id: 3, name: '佐々木　翔太', password: 'password123', emoji: '👨‍🔬', color: '#45b7d1' },
-                { id: 4, name: '町田　総士', password: 'password123', emoji: '👨‍🎯', color: '#f9ca24' }
+                { id: 1, name: '大仁田　真', password: '1', emoji: '👨‍💼', color: '#ff6b6b' },
+                { id: 2, name: '高橋　伸輔', password: '3', emoji: '🧑‍💻', color: '#4ecdc4' },
+                { id: 3, name: '佐々木　翔太', password: '4', emoji: '👨‍🔬', color: '#45b7d1' },
+                { id: 4, name: '町田　総士', password: '5', emoji: '👨‍🎯', color: '#f9ca24' }
             ],
             '工事部': [
-                { id: 5, name: '大仁田　実', password: 'password123', emoji: '👷‍♂️', color: '#f0932b' },
-                { id: 6, name: '長谷　章一', password: 'password123', emoji: '🔧', color: '#eb4d4b' },
-                { id: 7, name: '篠田　将吏', password: 'password123', emoji: '⚡', color: '#6c5ce7' },
-                { id: 8, name: '荒木　晃太', password: 'password123', emoji: '🛠️', color: '#fd79a8' },
-                { id: 9, name: '仲田　淳次', password: 'password123', emoji: '🏗️', color: '#00b894' },
-                { id: 10, name: '白谷　富敬', password: 'password123', emoji: '⚙️', color: '#e17055' },
-                { id: 11, name: '木村　善幸', password: 'password123', emoji: '🔨', color: '#81ecec' },
-                { id: 12, name: '小林　常利', password: 'password123', emoji: '🚧', color: '#74b9ff' },
-                { id: 13, name: '氏森　ルイス', password: 'password123', emoji: '🌟', color: '#55a3ff' }
+                { id: 5, name: '大仁田　実', password: '2', emoji: '👷‍♂️', color: '#f0932b' },
+                { id: 6, name: '長谷　章一', password: '6', emoji: '🔧', color: '#eb4d4b' },
+                { id: 7, name: '篠田　将吏', password: '7', emoji: '⚡', color: '#6c5ce7' },
+                { id: 8, name: '荒木　晃太', password: '8', emoji: '🛠️', color: '#fd79a8' },
+                { id: 9, name: '仲田　淳次', password: '9', emoji: '🏗️', color: '#00b894' },
+                { id: 10, name: '白谷　富敬', password: '10', emoji: '⚙️', color: '#e17055' },
+                { id: 11, name: '木村　善幸', password: '11', emoji: '🔨', color: '#81ecec' },
+                { id: 12, name: '小林　常利', password: '12', emoji: '🚧', color: '#74b9ff' },
+                { id: 13, name: '氏森　ルイス', password: '13', emoji: '🌟', color: '#55a3ff' }
             ]
         };
 
@@ -930,8 +965,8 @@
             viewMode = mode;
             
             if (mode === 'calendar') {
-                document.getElementById('calendarModeBtn').className = 'px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold text-sm transition-all duration-300 transform hover:scale-105';
-                document.getElementById('cybozuModeBtn').className = 'px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-pink-100 font-bold text-sm transition-all duration-300 transform hover:scale-105';
+                document.getElementById('calendarModeBtn').className = 'mobile-button flex-1 md:flex-none px-3 md:px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold transition-all duration-300 transform hover:scale-105';
+                document.getElementById('cybozuModeBtn').className = 'mobile-button flex-1 md:flex-none px-3 md:px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-pink-100 font-bold transition-all duration-300 transform hover:scale-105';
                 
                 document.getElementById('calendarControls').classList.remove('hidden');
                 document.getElementById('cybozuControls').classList.add('hidden');
@@ -940,8 +975,8 @@
                 
                 updateCalendar();
             } else {
-                document.getElementById('cybozuModeBtn').className = 'px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold text-sm transition-all duration-300 transform hover:scale-105';
-                document.getElementById('calendarModeBtn').className = 'px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-pink-100 font-bold text-sm transition-all duration-300 transform hover:scale-105';
+                document.getElementById('cybozuModeBtn').className = 'mobile-button flex-1 md:flex-none px-3 md:px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold transition-all duration-300 transform hover:scale-105';
+                document.getElementById('calendarModeBtn').className = 'mobile-button flex-1 md:flex-none px-3 md:px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-pink-100 font-bold transition-all duration-300 transform hover:scale-105';
                 
                 document.getElementById('calendarControls').classList.add('hidden');
                 document.getElementById('cybozuControls').classList.remove('hidden');
@@ -979,38 +1014,41 @@
                 const isToday = day.toISOString().split('T')[0] === today;
                 
                 const dayCell = document.createElement('div');
-                dayCell.className = `border-r border-b border-purple-100 min-h-24 p-2 transition-all duration-300 hover:bg-purple-50 cursor-pointer ${
+                dayCell.className = `calendar-cell border-r border-b border-purple-100 min-h-16 md:min-h-24 p-1 md:p-2 transition-all duration-300 hover:bg-purple-50 cursor-pointer ${
                     !isCurrentMonth ? 'bg-gray-50/50' : isToday ? 'bg-gradient-to-br from-yellow-100 to-orange-100' : ''
                 }`;
                 dayCell.onclick = () => addScheduleForDate(day);
                 
                 const dayNumber = document.createElement('div');
-                dayNumber.className = `text-sm font-bold mb-1 flex items-center justify-center ${
-                    isToday ? 'bg-gradient-to-r from-orange-400 to-pink-400 text-white rounded-full w-6 h-6' :
+                dayNumber.className = `text-xs md:text-sm font-bold mb-1 flex items-center justify-center ${
+                    isToday ? 'bg-gradient-to-r from-orange-400 to-pink-400 text-white rounded-full w-5 h-5 md:w-6 md:h-6 text-xs' :
                     i % 7 === 0 ? 'text-red-500' : 
                     i % 7 === 6 ? 'text-blue-500' : 
                     'text-purple-700'
                 }`;
-                dayNumber.innerHTML = `${isToday ? '<span class="mr-1">🎯</span>' : ''}${day.getDate()}`;
+                dayNumber.innerHTML = `${isToday ? '<span class="text-xs">🎯</span>' : ''}${day.getDate()}`;
                 
                 const scheduleContainer = document.createElement('div');
                 scheduleContainer.className = 'space-y-1';
                 
-                daySchedules.slice(0, 2).forEach(schedule => {
+                // モバイルでは1件、デスクトップでは2件表示
+                const maxSchedules = window.innerWidth <= 768 ? 1 : 2;
+                
+                daySchedules.slice(0, maxSchedules).forEach(schedule => {
                     const scheduleDiv = document.createElement('div');
-                    scheduleDiv.className = 'text-xs p-1 rounded-lg cursor-pointer hover:opacity-80 transition-all duration-300 transform hover:scale-105 shadow-sm';
+                    scheduleDiv.className = 'schedule-item text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-all duration-300 transform hover:scale-105 shadow-sm';
                     scheduleDiv.style.backgroundColor = `${getEmployeeColor(schedule.employeeIds[0])}30`;
-                    scheduleDiv.style.borderLeft = `3px solid ${getEmployeeColor(schedule.employeeIds[0])}`;
+                    scheduleDiv.style.borderLeft = `2px md:3px solid ${getEmployeeColor(schedule.employeeIds[0])}`;
                     scheduleDiv.onclick = (e) => {
                         e.stopPropagation();
                         editSchedule(schedule.id);
                     };
                     
                     scheduleDiv.innerHTML = `
-                        <div class="font-bold truncate">${schedule.title}</div>
-                        <div class="text-gray-700 flex items-center space-x-1">
-                            <span>${getEmployeeEmoji(schedule.employeeIds[0])}</span>
-                            <span>
+                        <div class="font-bold truncate text-xs">${schedule.title}</div>
+                        <div class="text-gray-700 flex items-center space-x-1 text-xs">
+                            <span class="text-xs">${getEmployeeEmoji(schedule.employeeIds[0])}</span>
+                            <span class="truncate">
                                 ${schedule.employeeIds.length > 1 ? `${getEmployeeName(schedule.employeeIds[0])} 他${schedule.employeeIds.length - 1}名` : getEmployeeName(schedule.employeeIds[0])}
                             </span>
                         </div>
@@ -1018,10 +1056,10 @@
                     scheduleContainer.appendChild(scheduleDiv);
                 });
                 
-                if (daySchedules.length > 2) {
+                if (daySchedules.length > maxSchedules) {
                     const moreDiv = document.createElement('div');
                     moreDiv.className = 'text-xs text-purple-600 font-bold';
-                    moreDiv.textContent = `✨ 他${daySchedules.length - 2}件`;
+                    moreDiv.textContent = `✨ 他${daySchedules.length - maxSchedules}件`;
                     scheduleContainer.appendChild(moreDiv);
                 }
                 
@@ -1043,11 +1081,11 @@
             // ヘッダー行
             const headerRow = document.createElement('div');
             headerRow.className = 'grid border-b border-purple-200 bg-gradient-to-r from-purple-100 to-pink-100';
-            headerRow.style.gridTemplateColumns = '200px repeat(7, 1fr)';
+            headerRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
             
             const employeeHeader = document.createElement('div');
-            employeeHeader.className = 'p-3 font-bold text-purple-700 border-r border-purple-200 flex items-center justify-center';
-            employeeHeader.textContent = '👥 社員名';
+            employeeHeader.className = 'cybozu-employee-cell p-2 md:p-3 font-bold text-purple-700 border-r border-purple-200 flex items-center justify-center text-xs md:text-sm';
+            employeeHeader.innerHTML = '<span class="md:hidden">👥</span><span class="hidden md:inline">👥 社員名</span>';
             headerRow.appendChild(employeeHeader);
             
             const today = new Date().toISOString().split('T')[0];
@@ -1058,7 +1096,7 @@
                 const isToday = day.toISOString().split('T')[0] === today;
                 
                 const dayHeader = document.createElement('div');
-                dayHeader.className = `p-3 text-center font-bold border-r border-purple-200 ${
+                dayHeader.className = `p-2 md:p-3 text-center font-bold border-r border-purple-200 text-xs md:text-sm ${
                     isToday ? 'bg-gradient-to-br from-yellow-200 to-orange-200 text-orange-700' :
                     day.getDay() === 0 ? 'text-red-500' : 
                     day.getDay() === 6 ? 'text-blue-500' : 
@@ -1067,11 +1105,11 @@
                 
                 dayHeader.innerHTML = `
                     <div class="flex items-center justify-center space-x-1">
-                        <span>${dayEmoji}</span>
-                        <span>${day.getMonth() + 1}/${day.getDate()}</span>
+                        <span class="text-xs md:text-sm">${dayEmoji}</span>
+                        <span class="text-xs md:text-sm">${day.getMonth() + 1}/${day.getDate()}</span>
                     </div>
-                    <div class="text-sm">(${dayOfWeek})</div>
-                    ${isToday ? '<div class="text-xs">✨今日✨</div>' : ''}
+                    <div class="text-xs">(<span class="md:hidden">${dayOfWeek.charAt(0)}</span><span class="hidden md:inline">${dayOfWeek}</span>)</div>
+                    ${isToday ? '<div class="text-xs">✨<span class="hidden md:inline">今日</span>✨</div>' : ''}
                 `;
                 headerRow.appendChild(dayHeader);
             });
@@ -1083,15 +1121,15 @@
                 // 部署ヘッダー
                 const deptHeaderRow = document.createElement('div');
                 deptHeaderRow.className = 'grid bg-gradient-to-r from-purple-100 to-pink-100 border-b border-purple-200';
-                deptHeaderRow.style.gridTemplateColumns = '200px repeat(7, 1fr)';
+                deptHeaderRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
                 
                 const deptHeader = document.createElement('div');
-                deptHeader.className = 'p-2 font-bold text-purple-700 border-r border-purple-200 flex items-center space-x-2';
+                deptHeader.className = 'p-1 md:p-2 font-bold text-purple-700 border-r border-purple-200 flex items-center space-x-2 text-xs md:text-sm';
                 deptHeader.style.gridColumn = '1 / -1';
                 deptHeader.innerHTML = `
                     <span>${dept === '管理部' ? '🏢' : '🏗️'}</span>
                     <span>${dept}</span>
-                    <span class="bg-white/60 px-2 py-1 rounded-full text-xs">(${employees.length}名)</span>
+                    <span class="bg-white/60 px-1 md:px-2 py-1 rounded-full text-xs">(${employees.length}名)</span>
                 `;
                 deptHeaderRow.appendChild(deptHeader);
                 cybozuGrid.appendChild(deptHeaderRow);
@@ -1101,16 +1139,16 @@
                     const empData = allEmployees.find(e => e.id === emp.id);
                     const empRow = document.createElement('div');
                     empRow.className = 'grid border-b border-purple-100 hover:bg-purple-50/50 transition-all duration-300';
-                    empRow.style.gridTemplateColumns = '200px repeat(7, 1fr)';
+                    empRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
                     
                     // 社員名
                     const empNameCell = document.createElement('div');
-                    empNameCell.className = 'p-3 border-r border-purple-200 bg-white/60';
+                    empNameCell.className = 'cybozu-employee-cell p-2 md:p-3 border-r border-purple-200 bg-white/60';
                     empNameCell.innerHTML = `
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: ${empData.color}"></div>
-                            <span class="text-lg">${emp.emoji}</span>
-                            <span class="text-sm font-bold text-purple-700">${emp.name}</span>
+                        <div class="flex items-center space-x-1 md:space-x-2">
+                            <div class="w-2 h-2 md:w-3 md:h-3 rounded-full shadow-sm" style="background-color: ${empData.color}"></div>
+                            <span class="text-sm md:text-lg">${emp.emoji}</span>
+                            <span class="text-xs md:text-sm font-bold text-purple-700 truncate">${emp.name}</span>
                         </div>
                     `;
                     empRow.appendChild(empNameCell);
@@ -1121,7 +1159,7 @@
                         const isToday = day.toISOString().split('T')[0] === today;
                         
                         const dayCell = document.createElement('div');
-                        dayCell.className = `p-2 border-r border-purple-200 min-h-16 ${
+                        dayCell.className = `p-1 md:p-2 border-r border-purple-200 min-h-12 md:min-h-16 ${
                             isToday ? 'bg-gradient-to-br from-yellow-50 to-orange-50' : ''
                         }`;
                         
@@ -1130,9 +1168,9 @@
                         
                         daySchedules.forEach(schedule => {
                             const scheduleDiv = document.createElement('div');
-                            scheduleDiv.className = 'text-xs p-1 rounded-lg cursor-pointer hover:opacity-80 transition-all duration-300 transform hover:scale-105 shadow-sm';
+                            scheduleDiv.className = 'text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-all duration-300 transform hover:scale-105 shadow-sm';
                             scheduleDiv.style.backgroundColor = `${getEmployeeColor(schedule.employeeIds[0])}30`;
-                            scheduleDiv.style.borderLeft = `2px solid ${getEmployeeColor(schedule.employeeIds[0])}`;
+                            scheduleDiv.style.borderLeft = `1px md:2px solid ${getEmployeeColor(schedule.employeeIds[0])}`;
                             scheduleDiv.onclick = (e) => {
                                 e.stopPropagation();
                                 editSchedule(schedule.id);
@@ -1141,10 +1179,10 @@
                             const startTime = new Date(schedule.startTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
                             
                             scheduleDiv.innerHTML = `
-                                <div class="font-bold truncate">${schedule.title}</div>
-                                <div class="text-gray-600 flex items-center space-x-1">
-                                    <span>🕐</span>
-                                    <span>${startTime}</span>
+                                <div class="font-bold truncate text-xs">${schedule.title}</div>
+                                <div class="text-gray-600 flex items-center space-x-1 text-xs">
+                                    <span class="text-xs">🕐</span>
+                                    <span class="text-xs">${startTime}</span>
                                     ${schedule.employeeIds.length > 1 ? 
                                         `<span class="bg-purple-200 text-purple-700 px-1 rounded-full text-xs font-bold">+${schedule.employeeIds.length - 1}</span>` : ''
                                     }
@@ -1155,12 +1193,12 @@
                         
                         // 予定追加ボタンを常に表示（予定がある日でも追加可能）
                         const addDiv = document.createElement('div');
-                        addDiv.className = 'text-gray-400 text-xs p-1 cursor-pointer hover:bg-purple-100 rounded-lg border border-dashed border-purple-200 transition-all duration-300 transform hover:scale-105 text-center mt-1';
+                        addDiv.className = 'text-gray-400 text-xs p-1 cursor-pointer hover:bg-purple-100 rounded border border-dashed border-purple-200 transition-all duration-300 transform hover:scale-105 text-center mt-1';
                         addDiv.onclick = (e) => {
                             e.stopPropagation();
                             addScheduleForEmployeeAndDate(emp.id, day);
                         };
-                        addDiv.innerHTML = '<div>✨</div><div>予定追加</div>';
+                        addDiv.innerHTML = '<div class="text-xs">✨</div><div class="text-xs">予定追加</div>';
                         scheduleContainer.appendChild(addDiv);
                         
                         dayCell.appendChild(scheduleContainer);
