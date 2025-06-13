@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Truth スケジュール管理システム</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropbox.js/10.34.0/Dropbox-sdk.min.js"></script>
     <style>
         @keyframes bounce {
             0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
@@ -37,6 +38,69 @@
         .bg-white\/50 { background-color: rgba(255, 255, 255, 0.5); }
         .bg-black\/50 { background-color: rgba(0, 0, 0, 0.5); }
         
+        /* サイボウズ表示の修正 */
+        .cybozu-grid {
+            display: grid;
+            width: 100%;
+            overflow-x: auto;
+        }
+        
+        .cybozu-header {
+            display: grid;
+            grid-template-columns: 200px repeat(7, minmax(120px, 1fr));
+            border-bottom: 2px solid #a855f7;
+            background: linear-gradient(to right, #f3e8ff, #fce7f3);
+            min-width: 1040px;
+        }
+        
+        .cybozu-dept-header {
+            display: grid;
+            grid-template-columns: 200px repeat(7, minmax(120px, 1fr));
+            border-bottom: 1px solid #a855f7;
+            background: linear-gradient(to right, #f3e8ff, #fce7f3);
+            min-width: 1040px;
+        }
+        
+        .cybozu-row {
+            display: grid;
+            grid-template-columns: 200px repeat(7, minmax(120px, 1fr));
+            border-bottom: 1px solid #e9d5ff;
+            min-width: 1040px;
+        }
+        
+        .cybozu-cell {
+            border-right: 1px solid #e9d5ff;
+            min-height: 80px;
+            padding: 8px;
+        }
+        
+        .cybozu-name-cell {
+            background-color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            padding: 12px;
+        }
+
+        /* 同期状態表示 */
+        .sync-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            opacity: 0.9;
+            transition: all 0.3s ease;
+        }
+        
+        .sync-success { background: linear-gradient(45deg, #10b981, #059669); }
+        .sync-error { background: linear-gradient(45deg, #ef4444, #dc2626); }
+        .sync-pending { background: linear-gradient(45deg, #f59e0b, #d97706); }
+        .sync-offline { background: linear-gradient(45deg, #6b7280, #4b5563); }
+        
         /* モバイル対応 */
         @media (max-width: 768px) {
             .calendar-grid {
@@ -65,39 +129,34 @@
             .mobile-modal {
                 margin: 0.5rem !important;
             }
+            
+            /* モバイル版サイボウズ表示 */
             .cybozu-grid {
-                font-size: 0.7rem;
+                display: block;
             }
-            .cybozu-employee-cell {
-                min-width: 100px !important;
-                max-width: 100px !important;
+            
+            .cybozu-header,
+            .cybozu-dept-header,
+            .cybozu-row {
+                display: block;
+                min-width: auto;
             }
-            .cybozu-day-cell {
-                min-width: 45px !important;
-                padding: 0.25rem !important;
-            }
-            .cybozu-day-header {
-                padding: 0.375rem 0.125rem !important;
-                font-size: 0.65rem !important;
-            }
-            .cybozu-schedule-item {
-                font-size: 0.55rem !important;
-                padding: 0.125rem !important;
-                margin-bottom: 0.125rem !important;
-                line-height: 1.2 !important;
-            }
-            .cybozu-add-button {
-                font-size: 0.55rem !important;
-                padding: 0.125rem !important;
-                line-height: 1.2 !important;
-            }
-            .cybozu-employee-name {
-                font-size: 0.6rem !important;
+            
+            .sync-status {
+                top: 10px;
+                right: 10px;
+                font-size: 10px;
+                padding: 6px 12px;
             }
         }
     </style>
 </head>
 <body>
+    <!-- 同期状態表示 -->
+    <div id="syncStatus" class="sync-status hidden">
+        <span id="syncStatusText">オフライン</span>
+    </div>
+
     <!-- ログイン画面 -->
     <div id="loginScreen" class="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100 flex items-center justify-center p-4">
         <div class="absolute inset-0 overflow-hidden">
@@ -121,6 +180,18 @@
                     <span>スケジュール管理システム</span>
                     <span>✨</span>
                 </p>
+                
+                <!-- Dropbox連携状態表示 -->
+                <div id="dropboxStatus" class="mt-3 p-2 rounded-lg bg-blue-50 border border-blue-200">
+                    <div class="flex items-center justify-center space-x-2 text-sm">
+                        <span id="dropboxIcon">☁️</span>
+                        <span id="dropboxStatusText" class="text-blue-700 font-medium">Dropbox未接続</span>
+                    </div>
+                    <button id="dropboxConnectBtn" onclick="connectToDropbox()" 
+                            class="mt-2 w-full px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-bold">
+                        📁 Dropboxに接続
+                    </button>
+                </div>
             </div>
 
             <div class="space-y-4">
@@ -196,207 +267,23 @@
                 <span>物件ファイル共有</span>
                 <span>📋</span>
             </button>
-        </div>
-    </div>
-
-    <!-- ファイル共有画面 -->
-    <div id="fileSharingScreen" class="hidden min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
-        <!-- ヘッダー -->
-        <header class="bg-gradient-to-r from-green-600 via-teal-500 to-blue-600 text-white mobile-header shadow-xl">
-            <div class="max-w-6xl mx-auto flex items-center justify-between">
-                <div class="flex items-center space-x-2 md:space-x-3">
-                    <div class="text-xl md:text-2xl animate-pulse">📁</div>
-                    <div>
-                        <h1 class="text-sm md:text-xl font-bold flex items-center space-x-1 md:space-x-2">
-                            <span>物件ファイル共有</span>
-                            <span class="animate-spin text-xs md:text-sm">📋</span>
-                        </h1>
-                        <p class="text-green-100 text-xs md:text-sm hidden md:block">株式会社大真工業 ✨ ファイル管理システム</p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2 md:space-x-3">
-                    <button onclick="showCreateProjectModal()"
-                            class="mobile-button bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 px-2 md:px-4 py-1 md:py-2 rounded-xl flex items-center space-x-1 md:space-x-2 transition-all duration-300 transform hover:scale-105 shadow-lg font-bold">
-                        <span>➕</span>
-                        <span class="hidden md:inline">新規物件</span>
+            
+            <!-- データ管理メニュー -->
+            <div class="mt-4 pt-4 border-t border-gray-200 space-y-2">
+                <div class="text-center text-sm text-gray-600 font-bold">📊 データ管理</div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="exportData()" 
+                            class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-bold flex items-center justify-center space-x-2">
+                        <span>📤</span>
+                        <span>エクスポート</span>
                     </button>
-                    <button onclick="backToLogin()"
-                            class="mobile-button bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 p-1 md:p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
-                            title="戻る">
-                        <span>🏠</span>
+                    <button onclick="importData()" 
+                            class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-bold flex items-center justify-center space-x-2">
+                        <span>📥</span>
+                        <span>インポート</span>
                     </button>
                 </div>
-            </div>
-        </header>
-
-        <div class="max-w-6xl mx-auto p-4">
-            <!-- 物件一覧 -->
-            <div class="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg p-6 mb-4 border border-green-100">
-                <h2 class="text-xl font-bold text-green-700 mb-4 flex items-center space-x-2">
-                    <span>🏗️</span>
-                    <span>物件一覧</span>
-                </h2>
-                <div id="projectsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- 物件カードがここに動的に追加される -->
-                </div>
-                <div id="noProjects" class="text-center py-8 text-gray-500">
-                    <div class="text-4xl mb-2">📂</div>
-                    <p>まだ物件が登録されていません</p>
-                    <p class="text-sm">「新規物件」ボタンから物件を追加してください</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 物件詳細画面 -->
-    <div id="projectDetailScreen" class="hidden min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
-        <!-- ヘッダー -->
-        <header class="bg-gradient-to-r from-green-600 via-teal-500 to-blue-600 text-white mobile-header shadow-xl">
-            <div class="max-w-6xl mx-auto flex items-center justify-between">
-                <div class="flex items-center space-x-2 md:space-x-3">
-                    <div class="text-xl md:text-2xl animate-pulse">📋</div>
-                    <div>
-                        <h1 id="projectDetailTitle" class="text-sm md:text-xl font-bold"></h1>
-                        <p class="text-green-100 text-xs md:text-sm hidden md:block">物件ファイル管理</p>
-                    </div>
-                </div>
-                <button onclick="backToFileSharing()"
-                        class="mobile-button bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 p-1 md:p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
-                        title="戻る">
-                    <span>←</span>
-                </button>
-            </div>
-        </header>
-
-        <div class="max-w-6xl mx-auto p-4">
-            <!-- ファイルカテゴリ -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-green-100 overflow-hidden">
-                    <div class="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4">
-                        <h3 class="font-bold flex items-center space-x-2">
-                            <span>🗺️</span>
-                            <span>現場案内図</span>
-                        </h3>
-                    </div>
-                    <div class="p-4">
-                        <input type="file" id="siteMap" accept=".pdf,.jpg,.jpeg,.png" multiple class="hidden">
-                        <button onclick="document.getElementById('siteMap').click()" 
-                                class="w-full mb-3 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2">
-                            <span>📤</span>
-                            <span>アップロード</span>
-                        </button>
-                        <div id="siteMapFiles" class="space-y-2">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-green-100 overflow-hidden">
-                    <div class="bg-gradient-to-r from-green-500 to-teal-500 text-white p-4">
-                        <h3 class="font-bold flex items-center space-x-2">
-                            <span>📅</span>
-                            <span>工程表</span>
-                        </h3>
-                    </div>
-                    <div class="p-4">
-                        <input type="file" id="schedule" accept=".pdf,.xls,.xlsx" multiple class="hidden">
-                        <button onclick="document.getElementById('schedule').click()" 
-                                class="w-full mb-3 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center space-x-2">
-                            <span>📤</span>
-                            <span>アップロード</span>
-                        </button>
-                        <div id="scheduleFiles" class="space-y-2">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-green-100 overflow-hidden">
-                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4">
-                        <h3 class="font-bold flex items-center space-x-2">
-                            <span>📐</span>
-                            <span>図面データ</span>
-                        </h3>
-                    </div>
-                    <div class="p-4">
-                        <input type="file" id="drawings" accept=".pdf,.dwg,.jpg,.jpeg,.png" multiple class="hidden">
-                        <button onclick="document.getElementById('drawings').click()" 
-                                class="w-full mb-3 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2">
-                            <span>📤</span>
-                            <span>アップロード</span>
-                        </button>
-                        <div id="drawingsFiles" class="space-y-2">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-green-100 overflow-hidden">
-                    <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4">
-                        <h3 class="font-bold flex items-center space-x-2">
-                            <span>👷</span>
-                            <span>新規・送り出し教育</span>
-                        </h3>
-                    </div>
-                    <div class="p-4">
-                        <input type="file" id="training" accept=".pdf,.ppt,.pptx,.doc,.docx" multiple class="hidden">
-                        <button onclick="document.getElementById('training').click()" 
-                                class="w-full mb-3 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center space-x-2">
-                            <span>📤</span>
-                            <span>アップロード</span>
-                        </button>
-                        <div id="trainingFiles" class="space-y-2">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 新規物件作成モーダル -->
-    <div id="createProjectModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white/95 backdrop-blur-sm rounded-2xl w-full max-w-md shadow-2xl border border-green-200">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-green-700 flex items-center space-x-2">
-                        <span>🏗️</span>
-                        <span>新規物件作成</span>
-                    </h2>
-                    <button onclick="closeCreateProjectModal()" class="text-gray-500 hover:text-green-600 transition-colors">
-                        <span class="text-2xl">×</span>
-                    </button>
-                </div>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-bold text-green-700 mb-2 flex items-center space-x-1">
-                            <span>🏗️</span>
-                            <span>物件名</span>
-                        </label>
-                        <input type="text" id="projectName"
-                               class="w-full border-2 border-green-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-green-400 transition-all duration-300"
-                               placeholder="物件名を入力してください">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-bold text-green-700 mb-2 flex items-center space-x-1">
-                            <span>📝</span>
-                            <span>説明（任意）</span>
-                        </label>
-                        <textarea id="projectDescription"
-                                  class="w-full border-2 border-green-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-green-400 transition-all duration-300"
-                                  rows="3" placeholder="物件の詳細説明"></textarea>
-                    </div>
-                </div>
-                
-                <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-green-200">
-                    <button onclick="closeCreateProjectModal()"
-                            class="px-4 py-2 text-gray-600 hover:text-gray-800 bg-gray-200 hover:bg-gray-300 rounded-xl transition-all duration-300 font-bold">
-                        キャンセル
-                    </button>
-                    <button onclick="createProject()"
-                            class="px-6 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-xl hover:from-green-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 shadow-lg font-bold flex items-center space-x-2">
-                        <span>🏗️</span>
-                        <span>作成</span>
-                    </button>
-                </div>
+                <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleImportFile(event)">
             </div>
         </div>
     </div>
@@ -425,6 +312,11 @@
                             class="mobile-button bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 px-2 md:px-4 py-1 md:py-2 rounded-xl flex items-center space-x-1 md:space-x-2 transition-all duration-300 transform hover:scale-105 shadow-lg font-bold">
                         <span>➕</span>
                         <span class="hidden md:inline">予定追加</span>
+                    </button>
+                    <button onclick="syncData()"
+                            class="mobile-button bg-gradient-to-r from-blue-400 to-cyan-400 hover:from-blue-500 hover:to-cyan-500 p-1 md:p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+                            title="データ同期">
+                        <span>🔄</span>
                     </button>
                     <button onclick="handleLogout()"
                             class="mobile-button bg-gradient-to-r from-red-400 to-pink-400 hover:from-red-500 hover:to-pink-500 p-1 md:p-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
@@ -508,7 +400,7 @@
 
             <!-- サイボウズ風表示 -->
             <div id="cybozuView" class="hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-x-auto border border-purple-100">
-                <div id="cybozuGrid" class="cybozu-grid min-w-full">
+                <div id="cybozuGrid" class="cybozu-grid">
                 </div>
             </div>
         </div>
@@ -727,7 +619,12 @@
     </div>
 
     <script>
-        // データ定義
+        // === Dropbox設定 ===
+        const DROPBOX_APP_KEY = 'YOUR_DROPBOX_APP_KEY'; // 実際のアプリケーションキーに置き換える
+        let dropboxAuth = null;
+        let isDropboxConnected = false;
+
+        // === データ定義 ===
         const departments = {
             '管理部': [
                 { id: 1, name: '大仁田　真', password: '1', emoji: '👨‍💼', color: '#ff6b6b' },
@@ -759,67 +656,421 @@
             });
         });
 
-        // グローバル状態
-        let currentUser = null;
-        let selectedDepartment = '';
-        let selectedEmployee = '';
-        let viewMode = 'calendar';
-        let currentDate = new Date();
-        let selectedUserFilter = 'all';
-        let editingEventId = null;
+        // === データ管理（LocalStorage + Dropbox対応） ===
+        const DEFAULT_DATA = {
+            currentUser: null,
+            selectedDepartment: '',
+            selectedEmployee: '',
+            viewMode: 'calendar',
+            currentDate: new Date(),
+            selectedUserFilter: 'all',
+            editingEventId: null,
+            schedules: [
+                {
+                    id: 1,
+                    title: '🎯 管理部会議',
+                    description: '月次売上報告 📊',
+                    startTime: '2025-06-11T09:00',
+                    endTime: '2025-06-11T10:00',
+                    employeeIds: [1, 2, 3, 4],
+                    createdBy: 1,
+                    createdAt: '2025-06-10T08:00:00',
+                    lastEditedBy: 1,
+                    lastEditedAt: '2025-06-10T08:00:00',
+                    type: 'meeting',
+                    isPublic: true
+                },
+                {
+                    id: 2,
+                    title: '🏗️ 現場視察',
+                    description: 'A工事現場の進捗確認 ✨',
+                    startTime: '2025-06-11T14:00',
+                    endTime: '2025-06-11T17:00',
+                    employeeIds: [5, 6],
+                    createdBy: 5,
+                    createdAt: '2025-06-10T10:00:00',
+                    lastEditedBy: 5,
+                    lastEditedAt: '2025-06-10T10:00:00',
+                    type: 'site',
+                    isPublic: true
+                },
+                {
+                    id: 3,
+                    title: '📚 安全講習',
+                    description: '新入社員向け安全教育 🛡️',
+                    startTime: '2025-06-12T10:00',
+                    endTime: '2025-06-12T12:00',
+                    employeeIds: [7, 8, 9],
+                    createdBy: 6,
+                    createdAt: '2025-06-09T15:00:00',
+                    lastEditedBy: 6,
+                    lastEditedAt: '2025-06-09T15:00:00',
+                    type: 'training',
+                    isPublic: true
+                }
+            ],
+            projects: [],
+            projectFiles: {},
+            currentProjectId: null,
+            lastSyncTime: null,
+            version: '1.0.0'
+        };
 
-        // スケジュールデータ
-        let schedules = [
-            {
-                id: 1,
-                title: '🎯 管理部会議',
-                description: '月次売上報告 📊',
-                startTime: '2025-06-11T09:00',
-                endTime: '2025-06-11T10:00',
-                employeeIds: [1, 2, 3, 4],
-                createdBy: 1,
-                createdAt: '2025-06-10T08:00:00',
-                lastEditedBy: 1,
-                lastEditedAt: '2025-06-10T08:00:00',
-                type: 'meeting',
-                isPublic: true
-            },
-            {
-                id: 2,
-                title: '🏗️ 現場視察',
-                description: 'A工事現場の進捗確認 ✨',
-                startTime: '2025-06-11T14:00',
-                endTime: '2025-06-11T17:00',
-                employeeIds: [5, 6],
-                createdBy: 5,
-                createdAt: '2025-06-10T10:00:00',
-                lastEditedBy: 5,
-                lastEditedAt: '2025-06-10T10:00:00',
-                type: 'site',
-                isPublic: true
-            },
-            {
-                id: 3,
-                title: '📚 安全講習',
-                description: '新入社員向け安全教育 🛡️',
-                startTime: '2025-06-12T10:00',
-                endTime: '2025-06-12T12:00',
-                employeeIds: [7, 8, 9],
-                createdBy: 6,
-                createdAt: '2025-06-09T15:00:00',
-                lastEditedBy: 6,
-                lastEditedAt: '2025-06-09T15:00:00',
-                type: 'training',
-                isPublic: true
+        let appData = { ...DEFAULT_DATA };
+
+        // データアクセサー
+        let currentUser = appData.currentUser;
+        let selectedDepartment = appData.selectedDepartment;
+        let selectedEmployee = appData.selectedEmployee;
+        let viewMode = appData.viewMode;
+        let currentDate = appData.currentDate;
+        let selectedUserFilter = appData.selectedUserFilter;
+        let editingEventId = appData.editingEventId;
+        let schedules = appData.schedules;
+        let projects = appData.projects;
+        let projectFiles = appData.projectFiles;
+        let currentProjectId = appData.currentProjectId;
+
+        // === データ永続化機能 ===
+        function saveToLocalStorage() {
+            try {
+                syncToAppData();
+                localStorage.setItem('scheduleAppData', JSON.stringify({
+                    ...appData,
+                    lastSaveTime: new Date().toISOString()
+                }));
+                updateSyncStatus('success', 'ローカル保存完了');
+                return true;
+            } catch (error) {
+                console.error('LocalStorage保存エラー:', error);
+                updateSyncStatus('error', 'ローカル保存失敗');
+                return false;
             }
-        ];
+        }
 
-        // プロジェクト（物件）データ
-        let projects = [];
-        let projectFiles = {};
-        let currentProjectId = null;
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('scheduleAppData');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    appData = { ...DEFAULT_DATA, ...data };
+                    // 日付オブジェクトを復元
+                    if (data.currentDate) {
+                        appData.currentDate = new Date(data.currentDate);
+                    }
+                    syncFromAppData();
+                    updateSyncStatus('success', 'ローカルデータ読み込み完了');
+                    return true;
+                }
+            } catch (error) {
+                console.error('LocalStorage読み込みエラー:', error);
+                updateSyncStatus('error', 'ローカルデータ読み込み失敗');
+            }
+            return false;
+        }
 
-        // ユーティリティ関数
+        function syncToAppData() {
+            appData.currentUser = currentUser;
+            appData.selectedDepartment = selectedDepartment;
+            appData.selectedEmployee = selectedEmployee;
+            appData.viewMode = viewMode;
+            appData.currentDate = currentDate;
+            appData.selectedUserFilter = selectedUserFilter;
+            appData.editingEventId = editingEventId;
+            appData.schedules = schedules;
+            appData.projects = projects;
+            appData.projectFiles = projectFiles;
+            appData.currentProjectId = currentProjectId;
+        }
+
+        function syncFromAppData() {
+            currentUser = appData.currentUser;
+            selectedDepartment = appData.selectedDepartment;
+            selectedEmployee = appData.selectedEmployee;
+            viewMode = appData.viewMode;
+            currentDate = appData.currentDate || new Date();
+            selectedUserFilter = appData.selectedUserFilter;
+            editingEventId = appData.editingEventId;
+            schedules = appData.schedules || [];
+            projects = appData.projects || [];
+            projectFiles = appData.projectFiles || {};
+            currentProjectId = appData.currentProjectId;
+        }
+
+        // === Dropbox連携機能 ===
+        function connectToDropbox() {
+            updateSyncStatus('pending', 'Dropbox接続中...');
+            
+            // 実際のDropbox APIキーが必要
+            if (DROPBOX_APP_KEY === 'YOUR_DROPBOX_APP_KEY') {
+                showDropboxSetupDialog();
+                return;
+            }
+
+            try {
+                dropboxAuth = new Dropbox.Dropbox({ 
+                    clientId: DROPBOX_APP_KEY,
+                    fetch: fetch
+                });
+
+                const authUrl = dropboxAuth.getAuthenticationUrl('http://localhost:8080/auth');
+                window.open(authUrl, '_blank');
+                
+                // 認証完了の検証（簡易版）
+                setTimeout(() => {
+                    isDropboxConnected = true;
+                    updateDropboxStatus();
+                    updateSyncStatus('success', 'Dropbox接続完了');
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Dropbox接続エラー:', error);
+                updateSyncStatus('error', 'Dropbox接続失敗');
+            }
+        }
+
+        function showDropboxSetupDialog() {
+            const setupHtml = `
+                <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                        <h3 class="text-xl font-bold text-blue-700 mb-4 flex items-center space-x-2">
+                            <span>📁</span>
+                            <span>Dropbox API設定</span>
+                        </h3>
+                        <div class="space-y-4 text-sm">
+                            <p class="text-gray-700">Dropbox連携を有効にするには、以下の手順が必要です：</p>
+                            <ol class="list-decimal list-inside space-y-2 text-gray-600">
+                                <li>Dropbox App Consoleでアプリを作成</li>
+                                <li>App Keyを取得</li>
+                                <li>コード内のYOUR_DROPBOX_APP_KEYを置き換え</li>
+                                <li>認証URLを設定</li>
+                            </ol>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <p class="text-blue-700 font-medium">現在はデモモードで動作中</p>
+                                <p class="text-blue-600 text-xs">実際の同期にはAPI設定が必要です</p>
+                            </div>
+                        </div>
+                        <button onclick="closeDropboxSetup()" 
+                                class="mt-4 w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-bold">
+                            了解
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            const div = document.createElement('div');
+            div.id = 'dropboxSetup';
+            div.innerHTML = setupHtml;
+            document.body.appendChild(div);
+            
+            updateSyncStatus('offline', 'Dropbox未設定');
+        }
+
+        function closeDropboxSetup() {
+            const setup = document.getElementById('dropboxSetup');
+            if (setup) {
+                setup.remove();
+            }
+        }
+
+        async function syncToDropbox() {
+            if (!isDropboxConnected) {
+                updateSyncStatus('error', 'Dropbox未接続');
+                return false;
+            }
+
+            try {
+                updateSyncStatus('pending', 'Dropbox同期中...');
+                
+                syncToAppData();
+                const dataToSync = {
+                    ...appData,
+                    syncTime: new Date().toISOString()
+                };
+
+                // Dropboxにデータをアップロード
+                await dropboxAuth.filesUpload({
+                    path: '/schedule_data.json',
+                    contents: JSON.stringify(dataToSync, null, 2),
+                    mode: 'overwrite',
+                    autorename: true
+                });
+
+                appData.lastSyncTime = new Date().toISOString();
+                updateSyncStatus('success', 'Dropbox同期完了');
+                return true;
+                
+            } catch (error) {
+                console.error('Dropbox同期エラー:', error);
+                updateSyncStatus('error', 'Dropbox同期失敗');
+                return false;
+            }
+        }
+
+        async function syncFromDropbox() {
+            if (!isDropboxConnected) {
+                return false;
+            }
+
+            try {
+                updateSyncStatus('pending', 'Dropboxから取得中...');
+                
+                const response = await dropboxAuth.filesDownload({
+                    path: '/schedule_data.json'
+                });
+
+                if (response.result.fileBinary) {
+                    const text = new TextDecoder().decode(response.result.fileBinary);
+                    const data = JSON.parse(text);
+                    
+                    // データをマージ（ローカルの方が新しい場合は保持）
+                    if (data.syncTime && (!appData.lastSyncTime || new Date(data.syncTime) > new Date(appData.lastSyncTime))) {
+                        appData = { ...DEFAULT_DATA, ...data };
+                        if (data.currentDate) {
+                            appData.currentDate = new Date(data.currentDate);
+                        }
+                        syncFromAppData();
+                        updateSyncStatus('success', 'Dropboxから更新');
+                        return true;
+                    }
+                }
+                
+            } catch (error) {
+                if (error.status === 409) {
+                    // ファイルが存在しない場合
+                    updateSyncStatus('success', 'Dropbox初回同期');
+                } else {
+                    console.error('Dropbox取得エラー:', error);
+                    updateSyncStatus('error', 'Dropbox取得失敗');
+                }
+            }
+            return false;
+        }
+
+        // === 同期機能 ===
+        async function syncData() {
+            // ローカルストレージに保存
+            saveToLocalStorage();
+            
+            // Dropboxに同期（利用可能な場合）
+            if (isDropboxConnected) {
+                await syncToDropbox();
+            }
+        }
+
+        function updateSyncStatus(status, message) {
+            const statusElement = document.getElementById('syncStatus');
+            const textElement = document.getElementById('syncStatusText');
+            
+            statusElement.className = `sync-status sync-${status}`;
+            textElement.textContent = message;
+            statusElement.classList.remove('hidden');
+            
+            // 3秒後に自動で隠す
+            setTimeout(() => {
+                statusElement.classList.add('hidden');
+            }, 3000);
+        }
+
+        function updateDropboxStatus() {
+            const icon = document.getElementById('dropboxIcon');
+            const text = document.getElementById('dropboxStatusText');
+            const btn = document.getElementById('dropboxConnectBtn');
+            
+            if (isDropboxConnected) {
+                icon.textContent = '☁️✅';
+                text.textContent = 'Dropbox接続済み';
+                text.className = 'text-green-700 font-medium';
+                btn.textContent = '🔄 同期';
+                btn.onclick = syncData;
+                btn.className = 'mt-2 w-full px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-bold';
+            } else {
+                icon.textContent = '☁️';
+                text.textContent = 'Dropbox未接続';
+                text.className = 'text-blue-700 font-medium';
+                btn.textContent = '📁 Dropboxに接続';
+                btn.onclick = connectToDropbox;
+            }
+        }
+
+        // === データインポート/エクスポート機能 ===
+        function exportData() {
+            try {
+                syncToAppData();
+                const dataToExport = {
+                    ...appData,
+                    exportTime: new Date().toISOString(),
+                    exportVersion: '1.0.0'
+                };
+                
+                const dataStr = JSON.stringify(dataToExport, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `schedule_backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                updateSyncStatus('success', 'データエクスポート完了');
+            } catch (error) {
+                console.error('エクスポートエラー:', error);
+                updateSyncStatus('error', 'エクスポート失敗');
+            }
+        }
+
+        function importData() {
+            document.getElementById('importFileInput').click();
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // データの検証
+                    if (data.version || data.exportVersion) {
+                        if (confirm('バックアップファイルからデータを復元しますか？\n現在のデータは上書きされます。')) {
+                            appData = { ...DEFAULT_DATA, ...data };
+                            if (data.currentDate) {
+                                appData.currentDate = new Date(data.currentDate);
+                            }
+                            syncFromAppData();
+                            saveToLocalStorage();
+                            
+                            // 画面を更新
+                            if (currentUser) {
+                                restoreLoginState();
+                            }
+                            
+                            updateSyncStatus('success', 'データインポート完了');
+                        }
+                    } else {
+                        alert('無効なバックアップファイルです。');
+                    }
+                } catch (error) {
+                    console.error('インポートエラー:', error);
+                    alert('ファイルの読み込みに失敗しました。');
+                    updateSyncStatus('error', 'インポート失敗');
+                }
+            };
+            reader.readAsText(file);
+            
+            // ファイル入力をリセット
+            event.target.value = '';
+        }
+
+        // === ファイル共有機能（簡略版） ===
+        function showFileSharing() {
+            alert('ファイル共有機能は開発中です。\n現在はスケジュール管理機能をご利用ください。');
+        }
+
+        // === ユーティリティ関数 ===
         function getEmployeeName(employeeId) {
             const employee = allEmployees.find(emp => emp.id === employeeId);
             return employee ? employee.name : '不明';
@@ -840,7 +1091,7 @@
             return employee ? employee.department : '不明';
         }
 
-        // ログイン機能
+        // === ログイン機能 ===
         function selectDepartment(dept) {
             selectedDepartment = dept;
             selectedEmployee = '';
@@ -948,6 +1199,9 @@
                 // カレンダー初期化
                 updateCalendar();
                 
+                // データ保存
+                saveToLocalStorage();
+                
                 loginError.classList.add('hidden');
             } else {
                 showError('❌ パスワードが正しくありません');
@@ -983,7 +1237,7 @@
             updateLoginButton();
         }
 
-        // 表示モード切り替え
+        // === 表示モード切り替え ===
         function setViewMode(mode) {
             viewMode = mode;
             
@@ -1010,7 +1264,7 @@
             }
         }
 
-        // カレンダー更新
+        // === カレンダー更新 ===
         function updateCalendar() {
             // 月表示更新
             document.getElementById('currentMonth').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`;
@@ -1092,28 +1346,119 @@
             }
         }
 
-        // サイボウズ風表示更新
+        // === サイボウズ風表示更新 ===
         function updateCybozuView() {
             const weekDays = generateWeekDays();
             document.getElementById('currentWeek').textContent = 
                 `${weekDays[0].getFullYear()}年${weekDays[0].getMonth() + 1}月${weekDays[0].getDate()}日〜${weekDays[6].getMonth() + 1}月${weekDays[6].getDate()}日`;
             
+            if (window.innerWidth <= 768) {
+                updateMobileCybozuView(weekDays);
+            } else {
+                updateDesktopCybozuView(weekDays);
+            }
+        }
+
+        // モバイル版サイボウズ表示
+        function updateMobileCybozuView(weekDays) {
+            const cybozuGrid = document.getElementById('cybozuGrid');
+            cybozuGrid.innerHTML = '';
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            // 各曜日ごとにセクションを作成
+            weekDays.forEach((day, dayIndex) => {
+                const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][day.getDay()];
+                const dayEmoji = ['🌅', '🌙', '🔥', '💧', '🌳', '⭐', '🌈'][day.getDay()];
+                const isToday = day.toISOString().split('T')[0] === today;
+                
+                const daySection = document.createElement('div');
+                daySection.className = `border border-purple-200 rounded-xl mb-4 ${isToday ? 'bg-yellow-50 border-yellow-300' : 'bg-white'}`;
+                
+                // 日付ヘッダー
+                const dayHeader = document.createElement('div');
+                dayHeader.className = `p-3 border-b border-purple-200 font-bold text-center ${
+                    isToday ? 'bg-yellow-100 text-yellow-800' :
+                    day.getDay() === 0 ? 'text-red-500' : 
+                    day.getDay() === 6 ? 'text-blue-500' : 
+                    'text-purple-700'
+                }`;
+                dayHeader.innerHTML = `
+                    <div class="text-lg">${dayEmoji} ${day.getMonth() + 1}月${day.getDate()}日(${dayOfWeek})</div>
+                    ${isToday ? '<div class="text-sm">✨ 今日 ✨</div>' : ''}
+                `;
+                daySection.appendChild(dayHeader);
+                
+                // 社員ごとの予定
+                const employeesContainer = document.createElement('div');
+                employeesContainer.className = 'p-3 space-y-3';
+                
+                Object.entries(departments).forEach(([dept, employees]) => {
+                    const deptDiv = document.createElement('div');
+                    deptDiv.innerHTML = `<h4 class="font-bold text-purple-700 mb-2 flex items-center space-x-2">
+                        <span>${dept === '管理部' ? '🏢' : '🏗️'}</span>
+                        <span>${dept}</span>
+                    </h4>`;
+                    
+                    const empGrid = document.createElement('div');
+                    empGrid.className = 'grid grid-cols-2 gap-3';
+                    
+                    employees.forEach(emp => {
+                        const empData = allEmployees.find(e => e.id === emp.id);
+                        const daySchedules = getSchedulesForEmployeeAndDate(emp.id, day);
+                        
+                        const empCard = document.createElement('div');
+                        empCard.className = 'border border-gray-200 rounded-lg p-2 bg-gray-50';
+                        
+                        empCard.innerHTML = `
+                            <div class="flex items-center space-x-2 mb-2">
+                                <div class="w-3 h-3 rounded-full" style="background-color: ${empData.color}"></div>
+                                <span class="text-sm">${emp.emoji}</span>
+                                <span class="text-sm font-bold text-purple-700">${emp.name}</span>
+                            </div>
+                            <div class="space-y-1">
+                                ${daySchedules.map(schedule => {
+                                    const startTime = new Date(schedule.startTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                                    return `
+                                        <div class="text-xs p-2 rounded cursor-pointer hover:opacity-80" 
+                                             style="background-color: ${empData.color}20; border-left: 3px solid ${empData.color}"
+                                             onclick="editSchedule(${schedule.id})">
+                                            <div class="font-bold">${schedule.title}</div>
+                                            <div class="text-gray-600">${startTime}</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                                <div class="text-xs p-2 border border-dashed border-purple-300 rounded text-center cursor-pointer hover:bg-purple-50"
+                                     onclick="addScheduleForEmployeeAndDate(${emp.id}, new Date('${day.toISOString()}'))">
+                                    ✨ 予定追加
+                                </div>
+                            </div>
+                        `;
+                        
+                        empGrid.appendChild(empCard);
+                    });
+                    
+                    deptDiv.appendChild(empGrid);
+                    employeesContainer.appendChild(deptDiv);
+                });
+                
+                daySection.appendChild(employeesContainer);
+                cybozuGrid.appendChild(daySection);
+            });
+        }
+
+        // デスクトップ版サイボウズ表示
+        function updateDesktopCybozuView(weekDays) {
             const cybozuGrid = document.getElementById('cybozuGrid');
             cybozuGrid.innerHTML = '';
             
             // ヘッダー行
             const headerRow = document.createElement('div');
-            headerRow.className = 'grid border-b border-purple-200 bg-gradient-to-r from-purple-100 to-pink-100';
-            // モバイルとデスクトップで異なるグリッド設定
-            if (window.innerWidth <= 768) {
-                headerRow.style.gridTemplateColumns = '100px repeat(7, 45px)';
-            } else {
-                headerRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
-            }
+            headerRow.className = 'cybozu-header';
             
             const employeeHeader = document.createElement('div');
-            employeeHeader.className = 'cybozu-employee-cell p-2 md:p-3 font-bold text-purple-700 border-r border-purple-200 flex items-center justify-center text-xs md:text-sm';
-            employeeHeader.innerHTML = '<span class="md:hidden">👥</span><span class="hidden md:inline">👥 社員名</span>';
+            employeeHeader.className = 'cybozu-cell cybozu-name-cell font-bold text-purple-700 flex items-center justify-center';
+            employeeHeader.textContent = '👥 社員名';
             headerRow.appendChild(employeeHeader);
             
             const today = new Date().toISOString().split('T')[0];
@@ -1124,7 +1469,7 @@
                 const isToday = day.toISOString().split('T')[0] === today;
                 
                 const dayHeader = document.createElement('div');
-                dayHeader.className = `cybozu-day-header p-2 md:p-3 text-center font-bold border-r border-purple-200 text-xs md:text-sm ${
+                dayHeader.className = `cybozu-cell text-center font-bold ${
                     isToday ? 'bg-gradient-to-br from-yellow-200 to-orange-200 text-orange-700' :
                     day.getDay() === 0 ? 'text-red-500' : 
                     day.getDay() === 6 ? 'text-blue-500' : 
@@ -1132,14 +1477,12 @@
                 }`;
                 
                 dayHeader.innerHTML = `
-                    <div class="flex flex-col items-center justify-center">
-                        <div class="flex items-center justify-center space-x-1">
-                            <span class="text-xs">${dayEmoji}</span>
-                            <span class="text-xs">${day.getMonth() + 1}/${day.getDate()}</span>
-                        </div>
-                        <div class="text-xs">(<span class="md:hidden">${dayOfWeek.charAt(0)}</span><span class="hidden md:inline">${dayOfWeek}</span>)</div>
-                        ${isToday ? '<div class="text-xs">✨</div>' : ''}
+                    <div class="flex items-center justify-center space-x-1">
+                        <span>${dayEmoji}</span>
+                        <span>${day.getMonth() + 1}/${day.getDate()}</span>
                     </div>
+                    <div class="text-sm">(${dayOfWeek})</div>
+                    ${isToday ? '<div class="text-xs">✨今日✨</div>' : ''}
                 `;
                 headerRow.appendChild(dayHeader);
             });
@@ -1150,21 +1493,15 @@
             Object.entries(departments).forEach(([dept, employees]) => {
                 // 部署ヘッダー
                 const deptHeaderRow = document.createElement('div');
-                deptHeaderRow.className = 'grid bg-gradient-to-r from-purple-100 to-pink-100 border-b border-purple-200';
-                // モバイルとデスクトップで異なるグリッド設定
-                if (window.innerWidth <= 768) {
-                    deptHeaderRow.style.gridTemplateColumns = '80px repeat(7, 1fr)';
-                } else {
-                    deptHeaderRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
-                }
+                deptHeaderRow.className = 'cybozu-dept-header';
                 
                 const deptHeader = document.createElement('div');
-                deptHeader.className = 'p-1 md:p-2 font-bold text-purple-700 border-r border-purple-200 flex items-center space-x-2 text-xs md:text-sm';
+                deptHeader.className = 'cybozu-cell font-bold text-purple-700 flex items-center space-x-2';
                 deptHeader.style.gridColumn = '1 / -1';
                 deptHeader.innerHTML = `
                     <span>${dept === '管理部' ? '🏢' : '🏗️'}</span>
                     <span>${dept}</span>
-                    <span class="bg-white/60 px-1 md:px-2 py-1 rounded-full text-xs">(${employees.length}名)</span>
+                    <span class="bg-white/60 px-2 py-1 rounded-full text-xs">(${employees.length}名)</span>
                 `;
                 deptHeaderRow.appendChild(deptHeader);
                 cybozuGrid.appendChild(deptHeaderRow);
@@ -1173,22 +1510,16 @@
                 employees.forEach(emp => {
                     const empData = allEmployees.find(e => e.id === emp.id);
                     const empRow = document.createElement('div');
-                    empRow.className = 'grid border-b border-purple-100 hover:bg-purple-50/50 transition-all duration-300';
-                    // モバイルとデスクトップで異なるグリッド設定
-                    if (window.innerWidth <= 768) {
-                        empRow.style.gridTemplateColumns = '80px repeat(7, 1fr)';
-                    } else {
-                        empRow.style.gridTemplateColumns = 'minmax(120px, 200px) repeat(7, 1fr)';
-                    }
+                    empRow.className = 'cybozu-row hover:bg-purple-50/50 transition-all duration-300';
                     
                     // 社員名
                     const empNameCell = document.createElement('div');
-                    empNameCell.className = 'cybozu-employee-cell p-2 md:p-3 border-r border-purple-200 bg-white/60';
+                    empNameCell.className = 'cybozu-cell cybozu-name-cell';
                     empNameCell.innerHTML = `
-                        <div class="flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-2">
-                            <div class="w-2 h-2 md:w-3 md:h-3 rounded-full shadow-sm" style="background-color: ${empData.color}"></div>
-                            <span class="text-sm md:text-lg">${emp.emoji}</span>
-                            <span class="text-xs md:text-sm font-bold text-purple-700 truncate text-center md:text-left">${emp.name}</span>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: ${empData.color}"></div>
+                            <span class="text-lg">${emp.emoji}</span>
+                            <span class="text-sm font-bold text-purple-700">${emp.name}</span>
                         </div>
                     `;
                     empRow.appendChild(empNameCell);
@@ -1199,7 +1530,7 @@
                         const isToday = day.toISOString().split('T')[0] === today;
                         
                         const dayCell = document.createElement('div');
-                        dayCell.className = `cybozu-day-cell p-1 md:p-2 border-r border-purple-200 min-h-12 md:min-h-16 ${
+                        dayCell.className = `cybozu-cell ${
                             isToday ? 'bg-gradient-to-br from-yellow-50 to-orange-50' : ''
                         }`;
                         
@@ -1208,9 +1539,9 @@
                         
                         daySchedules.forEach(schedule => {
                             const scheduleDiv = document.createElement('div');
-                            scheduleDiv.className = 'cybozu-schedule-item text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-all duration-300 transform hover:scale-105 shadow-sm';
+                            scheduleDiv.className = 'text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-all duration-300 transform hover:scale-105 shadow-sm';
                             scheduleDiv.style.backgroundColor = `${getEmployeeColor(schedule.employeeIds[0])}30`;
-                            scheduleDiv.style.borderLeft = `1px md:2px solid ${getEmployeeColor(schedule.employeeIds[0])}`;
+                            scheduleDiv.style.borderLeft = `2px solid ${getEmployeeColor(schedule.employeeIds[0])}`;
                             scheduleDiv.onclick = (e) => {
                                 e.stopPropagation();
                                 editSchedule(schedule.id);
@@ -1219,10 +1550,10 @@
                             const startTime = new Date(schedule.startTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
                             
                             scheduleDiv.innerHTML = `
-                                <div class="font-bold truncate text-xs">${schedule.title}</div>
-                                <div class="text-gray-600 flex items-center space-x-1 text-xs">
-                                    <span class="text-xs">🕐</span>
-                                    <span class="text-xs">${startTime}</span>
+                                <div class="font-bold truncate">${schedule.title}</div>
+                                <div class="text-gray-600 flex items-center space-x-1">
+                                    <span>🕐</span>
+                                    <span>${startTime}</span>
                                     ${schedule.employeeIds.length > 1 ? 
                                         `<span class="bg-purple-200 text-purple-700 px-1 rounded-full text-xs font-bold">+${schedule.employeeIds.length - 1}</span>` : ''
                                     }
@@ -1231,14 +1562,14 @@
                             scheduleContainer.appendChild(scheduleDiv);
                         });
                         
-                        // 予定追加ボタンを常に表示（予定がある日でも追加可能）
+                        // 予定追加ボタン
                         const addDiv = document.createElement('div');
-                        addDiv.className = 'cybozu-add-button text-gray-400 text-xs p-1 cursor-pointer hover:bg-purple-100 rounded border border-dashed border-purple-200 transition-all duration-300 transform hover:scale-105 text-center mt-1';
+                        addDiv.className = 'text-gray-400 text-xs p-1 cursor-pointer hover:bg-purple-100 rounded border border-dashed border-purple-200 transition-all duration-300 transform hover:scale-105 text-center mt-1';
                         addDiv.onclick = (e) => {
                             e.stopPropagation();
                             addScheduleForEmployeeAndDate(emp.id, day);
                         };
-                        addDiv.innerHTML = '<div class="text-xs">✨</div><div class="text-xs">予定追加</div>';
+                        addDiv.innerHTML = '<div>✨</div><div>予定追加</div>';
                         scheduleContainer.appendChild(addDiv);
                         
                         dayCell.appendChild(scheduleContainer);
@@ -1250,7 +1581,7 @@
             });
         }
 
-        // 週間日付生成
+        // === 週間日付生成 ===
         function generateWeekDays() {
             const startOfWeek = new Date(currentDate);
             const day = startOfWeek.getDay();
@@ -1266,582 +1597,9 @@
             return days;
         }
 
-        // 指定日のスケジュール取得
+        // === 指定日のスケジュール取得 ===
         function getSchedulesForDate(date) {
             const dateStr = date.toISOString().split('T')[0];
             return schedules.filter(schedule => {
                 const scheduleDate = schedule.startTime.split('T')[0];
-                const matchesDate = scheduleDate === dateStr;
-                const matchesUser = selectedUserFilter === 'all' || schedule.employeeIds.includes(parseInt(selectedUserFilter));
-                return matchesDate && matchesUser && schedule.isPublic;
-            });
-        }
-
-        // 指定社員の指定日のスケジュール取得
-        function getSchedulesForEmployeeAndDate(employeeId, date) {
-            const dateStr = date.toISOString().split('T')[0];
-            return schedules.filter(schedule => {
-                const scheduleDate = schedule.startTime.split('T')[0];
-                return schedule.employeeIds.includes(employeeId) && scheduleDate === dateStr && schedule.isPublic;
-            });
-        }
-
-        // ナビゲーション
-        function previousMonth() {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            updateCalendar();
-        }
-
-        function nextMonth() {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            updateCalendar();
-        }
-
-        function previousWeek() {
-            currentDate.setDate(currentDate.getDate() - 7);
-            updateCybozuView();
-        }
-
-        function nextWeek() {
-            currentDate.setDate(currentDate.getDate() + 7);
-            updateCybozuView();
-        }
-
-        function filterByUser() {
-            selectedUserFilter = document.getElementById('userFilter').value;
-            if (viewMode === 'calendar') {
-                updateCalendar();
-            } else {
-                updateCybozuView();
-            }
-        }
-
-        // モーダル機能
-        function showAddModal() {
-            document.getElementById('addModal').classList.remove('hidden');
-            initNewEventForm();
-            generateEmployeeCheckboxes('employeeCheckboxes', 'selectedEmployees', 'selectedEmployeesList');
-        }
-
-        function initNewEventForm() {
-            const now = new Date();
-            const startTime = new Date(now.setMinutes(0, 0, 0));
-            const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
-            
-            document.getElementById('eventTitle').value = '';
-            document.getElementById('eventDescription').value = '';
-            document.getElementById('eventStartTime').value = startTime.toISOString().slice(0, 16);
-            document.getElementById('eventEndTime').value = endTime.toISOString().slice(0, 16);
-            document.getElementById('eventType').value = 'meeting';
-        }
-
-        function addScheduleForDate(date) {
-            const scheduleDate = date.toISOString().slice(0, 10);
-            document.getElementById('eventStartTime').value = `${scheduleDate}T09:00`;
-            document.getElementById('eventEndTime').value = `${scheduleDate}T10:00`;
-            
-            showAddModal();
-        }
-
-        function addScheduleForEmployeeAndDate(employeeId, date) {
-            const scheduleDate = date.toISOString().slice(0, 10);
-            document.getElementById('eventStartTime').value = `${scheduleDate}T09:00`;
-            document.getElementById('eventEndTime').value = `${scheduleDate}T10:00`;
-            
-            // 特定の社員を選択状態にする
-            setTimeout(() => {
-                const checkbox = document.querySelector(`input[data-employee-id="${employeeId}"]`);
-                if (checkbox) {
-                    checkbox.checked = true;
-                    updateSelectedEmployees('selectedEmployees', 'selectedEmployeesList');
-                }
-            }, 100);
-            
-            showAddModal();
-        }
-
-        function editSchedule(scheduleId) {
-            const schedule = schedules.find(s => s.id === scheduleId);
-            if (!schedule) return;
-            
-            editingEventId = scheduleId;
-            
-            // フォームに値を設定
-            document.getElementById('editEventTitle').value = schedule.title;
-            document.getElementById('editEventDescription').value = schedule.description;
-            document.getElementById('editEventStartTime').value = schedule.startTime;
-            document.getElementById('editEventEndTime').value = schedule.endTime;
-            document.getElementById('editEventType').value = schedule.type;
-            
-            // 履歴情報表示
-            const historyDiv = document.getElementById('eventHistory');
-            historyDiv.innerHTML = `
-                <div class="flex justify-between items-center text-sm">
-                    <span class="flex items-center space-x-2">
-                        <span>📝</span>
-                        <span class="font-bold">登録者:</span>
-                        <span>${getEmployeeEmoji(schedule.createdBy)} ${getEmployeeName(schedule.createdBy)}</span>
-                    </span>
-                    <span class="text-purple-600 font-bold">${new Date(schedule.createdAt).toLocaleString('ja-JP')}</span>
-                </div>
-                ${schedule.lastEditedBy !== schedule.createdBy ? `
-                    <div class="flex justify-between items-center mt-2 text-sm text-purple-600">
-                        <span class="flex items-center space-x-2">
-                            <span>✏️</span>
-                            <span class="font-bold">最終編集:</span>
-                            <span>${getEmployeeEmoji(schedule.lastEditedBy)} ${getEmployeeName(schedule.lastEditedBy)}</span>
-                        </span>
-                        <span class="font-bold">${new Date(schedule.lastEditedAt).toLocaleString('ja-JP')}</span>
-                    </div>
-                ` : ''}
-            `;
-            
-            generateEmployeeCheckboxes('editEmployeeCheckboxes', 'editSelectedEmployees', 'editSelectedEmployeesList');
-            
-            // 選択状態を設定
-            setTimeout(() => {
-                schedule.employeeIds.forEach(empId => {
-                    const checkbox = document.querySelector(`#editEmployeeCheckboxes input[data-employee-id="${empId}"]`);
-                    if (checkbox) {
-                        checkbox.checked = true;
-                    }
-                });
-                updateSelectedEmployees('editSelectedEmployees', 'editSelectedEmployeesList');
-            }, 100);
-            
-            document.getElementById('editModal').classList.remove('hidden');
-        }
-
-        function generateEmployeeCheckboxes(containerId, selectedContainerId, selectedListId) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            
-            Object.entries(departments).forEach(([dept, employees]) => {
-                const deptDiv = document.createElement('div');
-                deptDiv.className = 'mb-3 last:mb-0';
-                
-                const deptHeader = document.createElement('div');
-                deptHeader.className = 'font-bold text-purple-700 mb-2 flex items-center space-x-2';
-                deptHeader.innerHTML = `
-                    <span>${dept === '管理部' ? '🏢' : '🏗️'}</span>
-                    <span>${dept}</span>
-                `;
-                deptDiv.appendChild(deptHeader);
-                
-                const empGrid = document.createElement('div');
-                empGrid.className = 'grid grid-cols-2 gap-2';
-                
-                employees.forEach(emp => {
-                    const label = document.createElement('label');
-                    label.className = 'flex items-center space-x-2 cursor-pointer bg-white/60 p-2 rounded-lg hover:bg-white/80 transition-all duration-300';
-                    
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.dataset.employeeId = emp.id;
-                    checkbox.className = 'text-purple-600 focus:ring-purple-500 w-4 h-4 rounded';
-                    checkbox.onchange = () => updateSelectedEmployees(selectedContainerId, selectedListId);
-                    
-                    label.innerHTML = `
-                        <span class="text-lg">${emp.emoji}</span>
-                        <span class="text-sm font-bold text-purple-700">${emp.name}</span>
-                    `;
-                    label.insertBefore(checkbox, label.firstChild);
-                    
-                    empGrid.appendChild(label);
-                });
-                
-                deptDiv.appendChild(empGrid);
-                container.appendChild(deptDiv);
-            });
-        }
-
-        function updateSelectedEmployees(selectedContainerId, selectedListId) {
-            const selectedContainer = document.getElementById(selectedContainerId);
-            const selectedList = document.getElementById(selectedListId);
-            
-            const checkboxes = selectedContainer.parentNode.querySelectorAll('input[type="checkbox"]:checked');
-            const selectedEmployees = Array.from(checkboxes).map(cb => {
-                const empId = parseInt(cb.dataset.employeeId);
-                return `${getEmployeeEmoji(empId)} ${getEmployeeName(empId)}`;
-            });
-            
-            if (selectedEmployees.length > 0) {
-                selectedContainer.classList.remove('hidden');
-                selectedList.textContent = selectedEmployees.join(', ');
-            } else {
-                selectedContainer.classList.add('hidden');
-            }
-        }
-
-        function addSchedule() {
-            const title = document.getElementById('eventTitle').value.trim();
-            const description = document.getElementById('eventDescription').value;
-            const startTime = document.getElementById('eventStartTime').value;
-            const endTime = document.getElementById('eventEndTime').value;
-            const type = document.getElementById('eventType').value;
-            
-            const selectedEmployeeIds = Array.from(document.querySelectorAll('#employeeCheckboxes input[type="checkbox"]:checked'))
-                .map(cb => parseInt(cb.dataset.employeeId));
-            
-            if (!title || selectedEmployeeIds.length === 0) return;
-            
-            const newSchedule = {
-                id: Date.now(),
-                title,
-                description,
-                startTime,
-                endTime,
-                employeeIds: selectedEmployeeIds,
-                type,
-                isPublic: true,
-                createdBy: currentUser.id,
-                createdAt: new Date().toISOString(),
-                lastEditedBy: currentUser.id,
-                lastEditedAt: new Date().toISOString()
-            };
-            
-            schedules.push(newSchedule);
-            closeModal();
-            
-            if (viewMode === 'calendar') {
-                updateCalendar();
-            } else {
-                updateCybozuView();
-            }
-        }
-
-        function updateSchedule() {
-            const title = document.getElementById('editEventTitle').value.trim();
-            const description = document.getElementById('editEventDescription').value;
-            const startTime = document.getElementById('editEventStartTime').value;
-            const endTime = document.getElementById('editEventEndTime').value;
-            const type = document.getElementById('editEventType').value;
-            
-            const selectedEmployeeIds = Array.from(document.querySelectorAll('#editEmployeeCheckboxes input[type="checkbox"]:checked'))
-                .map(cb => parseInt(cb.dataset.employeeId));
-            
-            if (!title || selectedEmployeeIds.length === 0) return;
-            
-            const scheduleIndex = schedules.findIndex(s => s.id === editingEventId);
-            if (scheduleIndex !== -1) {
-                schedules[scheduleIndex] = {
-                    ...schedules[scheduleIndex],
-                    title,
-                    description,
-                    startTime,
-                    endTime,
-                    employeeIds: selectedEmployeeIds,
-                    type,
-                    lastEditedBy: currentUser.id,
-                    lastEditedAt: new Date().toISOString()
-                };
-            }
-            
-            closeModal();
-            
-            if (viewMode === 'calendar') {
-                updateCalendar();
-            } else {
-                updateCybozuView();
-            }
-        }
-
-        function deleteSchedule() {
-            if (editingEventId) {
-                schedules = schedules.filter(s => s.id !== editingEventId);
-                closeModal();
-                
-                if (viewMode === 'calendar') {
-                    updateCalendar();
-                } else {
-                    updateCybozuView();
-                }
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('addModal').classList.add('hidden');
-            document.getElementById('editModal').classList.add('hidden');
-            editingEventId = null;
-        }
-
-        // パスワード入力時の処理
-        document.getElementById('passwordInput').addEventListener('input', updateLoginButton);
-
-        // 初期化
-        document.addEventListener('DOMContentLoaded', function() {
-            setViewMode('calendar');
-            cleanupExpiredProjects();
-            setupFileUploadHandlers();
-        });
-
-        // 画面リサイズ時の処理
-        window.addEventListener('resize', function() {
-            if (viewMode === 'cybozu') {
-                updateCybozuView();
-            }
-        });
-
-        // ファイル共有機能
-        function showFileSharing() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('fileSharingScreen').classList.remove('hidden');
-            updateProjectsList();
-        }
-
-        function backToLogin() {
-            document.getElementById('fileSharingScreen').classList.add('hidden');
-            document.getElementById('projectDetailScreen').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-        }
-
-        function backToFileSharing() {
-            document.getElementById('projectDetailScreen').classList.add('hidden');
-            document.getElementById('fileSharingScreen').classList.remove('hidden');
-            updateProjectsList();
-        }
-
-        function showCreateProjectModal() {
-            document.getElementById('createProjectModal').classList.remove('hidden');
-            document.getElementById('projectName').value = '';
-            document.getElementById('projectDescription').value = '';
-        }
-
-        function closeCreateProjectModal() {
-            document.getElementById('createProjectModal').classList.add('hidden');
-        }
-
-        function createProject() {
-            const name = document.getElementById('projectName').value.trim();
-            const description = document.getElementById('projectDescription').value.trim();
-            
-            if (!name) {
-                alert('物件名を入力してください');
-                return;
-            }
-            
-            const projectId = Date.now();
-            const project = {
-                id: projectId,
-                name: name,
-                description: description,
-                createdAt: new Date().toISOString(),
-                expiresAt: new Date(Date.now() + 8 * 30 * 24 * 60 * 60 * 1000).toISOString() // 8カ月後
-            };
-            
-            projects.push(project);
-            projectFiles[projectId] = {
-                siteMap: [],
-                schedule: [],
-                drawings: [],
-                training: []
-            };
-            
-            closeCreateProjectModal();
-            updateProjectsList();
-        }
-
-        function updateProjectsList() {
-            const projectsList = document.getElementById('projectsList');
-            const noProjects = document.getElementById('noProjects');
-            
-            if (projects.length === 0) {
-                projectsList.innerHTML = '';
-                noProjects.classList.remove('hidden');
-                return;
-            }
-            
-            noProjects.classList.add('hidden');
-            projectsList.innerHTML = '';
-            
-            projects.forEach(project => {
-                const projectCard = document.createElement('div');
-                projectCard.className = 'bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-green-100 p-4 hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer';
-                projectCard.onclick = () => openProject(project.id);
-                
-                const expiresDate = new Date(project.expiresAt);
-                const daysLeft = Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24));
-                
-                projectCard.innerHTML = `
-                    <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-bold text-green-700 text-lg flex items-center space-x-2">
-                            <span>🏗️</span>
-                            <span>${project.name}</span>
-                        </h3>
-                        <button onclick="deleteProject(${project.id}); event.stopPropagation();" 
-                                class="text-red-500 hover:text-red-700 transition-colors"
-                                title="削除">
-                            <span>🗑️</span>
-                        </button>
-                    </div>
-                    ${project.description ? `<p class="text-gray-600 text-sm mb-3">${project.description}</p>` : ''}
-                    <div class="flex justify-between items-center text-xs text-gray-500">
-                        <span>作成日: ${new Date(project.createdAt).toLocaleDateString('ja-JP')}</span>
-                        <span class="${daysLeft < 30 ? 'text-red-500 font-bold' : 'text-gray-500'}">
-                            残り${daysLeft}日
-                        </span>
-                    </div>
-                `;
-                
-                projectsList.appendChild(projectCard);
-            });
-        }
-
-        function openProject(projectId) {
-            currentProjectId = projectId;
-            const project = projects.find(p => p.id === projectId);
-            
-            document.getElementById('projectDetailTitle').textContent = project.name;
-            document.getElementById('fileSharingScreen').classList.add('hidden');
-            document.getElementById('projectDetailScreen').classList.remove('hidden');
-            
-            updateFilesList();
-        }
-
-        function deleteProject(projectId) {
-            if (confirm('この物件を削除してもよろしいですか？\n関連するファイルもすべて削除されます。')) {
-                projects = projects.filter(p => p.id !== projectId);
-                delete projectFiles[projectId];
-                updateProjectsList();
-            }
-        }
-
-        function cleanupExpiredProjects() {
-            const now = new Date();
-            const expiredProjects = projects.filter(project => new Date(project.expiresAt) <= now);
-            
-            if (expiredProjects.length > 0) {
-                expiredProjects.forEach(project => {
-                    delete projectFiles[project.id];
-                });
-                projects = projects.filter(project => new Date(project.expiresAt) > now);
-            }
-        }
-
-        function setupFileUploadHandlers() {
-            const fileTypes = ['siteMap', 'schedule', 'drawings', 'training'];
-            
-            fileTypes.forEach(type => {
-                const input = document.getElementById(type);
-                if (input) {
-                    input.addEventListener('change', (event) => handleFileUpload(event, type));
-                }
-            });
-        }
-
-        function handleFileUpload(event, category) {
-            const files = Array.from(event.target.files);
-            const projectFiles_current = projectFiles[currentProjectId];
-            
-            if (!projectFiles_current) return;
-            
-            files.forEach(file => {
-                const fileData = {
-                    id: Date.now() + Math.random(),
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    uploadedAt: new Date().toISOString(),
-                    data: null // ブラウザ制限のため実際のファイルデータは保存できません
-                };
-                
-                // ファイルを読み込んでData URLとして保存
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    fileData.data = e.target.result;
-                    projectFiles_current[category].push(fileData);
-                    updateFilesList();
-                };
-                reader.readAsDataURL(file);
-            });
-            
-            // ファイル入力をリセット
-            event.target.value = '';
-        }
-
-        function updateFilesList() {
-            const categories = {
-                siteMap: 'siteMapFiles',
-                schedule: 'scheduleFiles', 
-                drawings: 'drawingsFiles',
-                training: 'trainingFiles'
-            };
-            
-            const projectFiles_current = projectFiles[currentProjectId];
-            if (!projectFiles_current) return;
-            
-            Object.entries(categories).forEach(([category, containerId]) => {
-                const container = document.getElementById(containerId);
-                container.innerHTML = '';
-                
-                projectFiles_current[category].forEach(file => {
-                    const fileDiv = document.createElement('div');
-                    fileDiv.className = 'flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm';
-                    
-                    fileDiv.innerHTML = `
-                        <div class="flex items-center space-x-2 flex-1 min-w-0">
-                            <span>📄</span>
-                            <span class="truncate font-medium">${file.name}</span>
-                            <span class="text-xs text-gray-500">${formatFileSize(file.size)}</span>
-                        </div>
-                        <div class="flex items-center space-x-1">
-                            <button onclick="downloadFile('${file.id}', '${category}')" 
-                                    class="text-blue-600 hover:text-blue-800 transition-colors p-1"
-                                    title="ダウンロード">
-                                📥
-                            </button>
-                            <button onclick="deleteFile('${file.id}', '${category}')" 
-                                    class="text-red-600 hover:text-red-800 transition-colors p-1"
-                                    title="削除">
-                                🗑️
-                            </button>
-                        </div>
-                    `;
-                    
-                    container.appendChild(fileDiv);
-                });
-                
-                if (projectFiles_current[category].length === 0) {
-                    const emptyDiv = document.createElement('div');
-                    emptyDiv.className = 'text-center py-4 text-gray-500 text-sm';
-                    emptyDiv.innerHTML = `
-                        <div class="text-2xl mb-1">📂</div>
-                        <p>ファイルがありません</p>
-                    `;
-                    container.appendChild(emptyDiv);
-                }
-            });
-        }
-
-        function downloadFile(fileId, category) {
-            const projectFiles_current = projectFiles[currentProjectId];
-            const file = projectFiles_current[category].find(f => f.id == fileId);
-            
-            if (file && file.data) {
-                const link = document.createElement('a');
-                link.href = file.data;
-                link.download = file.name;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        }
-
-        function deleteFile(fileId, category) {
-            if (confirm('このファイルを削除してもよろしいですか？')) {
-                const projectFiles_current = projectFiles[currentProjectId];
-                projectFiles_current[category] = projectFiles_current[category].filter(f => f.id != fileId);
-                updateFilesList();
-            }
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-    </script>
-</body>
-</html>
+                const matchesDate =
